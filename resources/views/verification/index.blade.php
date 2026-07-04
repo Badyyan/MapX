@@ -6,19 +6,21 @@
     <div class="grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
             {{-- Branch statuses --}}
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 font-semibold">{{ __('Verification status per branch') }}</div>
+            <div class="table-wrap">
+                <div class="px-6 py-4 border-b border-slate-100 section-title">{{ __('Verification status per branch') }}</div>
                 <div class="divide-y divide-slate-100">
                     @foreach($branches as $branch)
-                        <div class="px-6 py-3 flex items-center justify-between">
-                            <span class="text-sm font-medium">{{ $branch->name }}</span>
-                            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium
-                                {{ match($branch->verification_status) {
-                                    'verified' => 'bg-emerald-100 text-emerald-700',
-                                    'pending', 'in_review' => 'bg-amber-100 text-amber-700',
-                                    'failed' => 'bg-red-100 text-red-700',
-                                    default => 'bg-slate-100 text-slate-600',
-                                } }}">
+                        <div class="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                            <span class="flex items-center gap-3 text-sm font-medium text-slate-800">
+                                <x-icon name="store" class="size-4 text-slate-300" />
+                                {{ $branch->name }}
+                            </span>
+                            <span class="{{ match($branch->verification_status) {
+                                'verified' => 'badge badge-success',
+                                'pending', 'in_review' => 'badge badge-warning',
+                                'failed' => 'badge badge-danger',
+                                default => 'badge badge-neutral',
+                            } }}">
                                 {{ __(ucfirst(str_replace('_', ' ', $branch->verification_status))) }}
                             </span>
                         </div>
@@ -28,36 +30,41 @@
 
             {{-- Requests & message threads --}}
             @foreach($requests as $request)
-                <div class="bg-white rounded-2xl border border-slate-200 p-6">
+                <div class="card p-6">
                     <div class="flex items-center justify-between">
-                        <div>
-                            <span class="font-semibold">{{ $request->branch?->name }}</span>
-                            <span class="text-xs text-slate-500 ms-2">{{ $request->created_at->format('M d, Y') }}</span>
+                        <div class="flex items-center gap-2.5">
+                            <span class="font-semibold text-slate-900">{{ $request->branch?->name }}</span>
+                            <span class="text-xs text-slate-400">{{ $request->created_at->format('M d, Y') }}</span>
                         </div>
-                        <span class="rounded-full bg-amber-100 text-amber-700 px-2.5 py-0.5 text-xs font-medium">{{ __(ucfirst(str_replace('_', ' ', $request->status))) }}</span>
+                        <span class="badge badge-warning">{{ __(ucfirst(str_replace('_', ' ', $request->status))) }}</span>
                     </div>
-                    @if($request->notes)<p class="mt-2 text-sm text-slate-600">{{ $request->notes }}</p>@endif
+                    @if($request->notes)<p class="mt-2.5 text-sm text-slate-600">{{ $request->notes }}</p>@endif
                     @if($request->documents)
-                        <div class="mt-2 flex flex-wrap gap-2">
+                        <div class="mt-3 flex flex-wrap gap-2">
                             @foreach($request->documents as $document)
-                                <a href="{{ asset('storage/'.$document['path']) }}" target="_blank" rel="noopener" class="rounded-lg bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-100">📎 {{ $document['name'] }}</a>
+                                <a href="{{ asset('storage/'.$document['path']) }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                                    <x-icon name="paperclip" class="size-3" /> {{ $document['name'] }}
+                                </a>
                             @endforeach
                         </div>
                     @endif
 
-                    <div class="mt-4 space-y-2">
+                    <div class="mt-4 space-y-2.5">
                         @foreach($request->messages as $message)
-                            <div class="rounded-xl p-3 text-sm {{ $message->is_support ? 'bg-brand-50 border border-brand-100' : 'bg-slate-50 border border-slate-200' }}">
-                                <div class="text-xs text-slate-500 mb-1">{{ $message->is_support ? __('Support team') : $message->user?->name }} · {{ $message->created_at->diffForHumans() }}</div>
-                                {{ $message->message }}
+                            <div class="rounded-xl p-3.5 text-sm {{ $message->is_support ? 'bg-brand-50/60 ring-1 ring-inset ring-brand-600/10' : 'bg-slate-50 ring-1 ring-inset ring-slate-900/[0.04]' }}">
+                                <p class="flex items-center gap-1.5 text-xs text-slate-400 mb-1.5">
+                                    @if($message->is_support)<x-icon name="heart-handshake" class="size-3.5 text-brand-500" />@endif
+                                    {{ $message->is_support ? __('Support team') : $message->user?->name }} · {{ $message->created_at->diffForHumans() }}
+                                </p>
+                                <p class="text-slate-700">{{ $message->message }}</p>
                             </div>
                         @endforeach
                     </div>
 
-                    <form method="POST" action="{{ route('verification.message', $request) }}" class="mt-3 flex gap-2">
+                    <form method="POST" action="{{ route('verification.message', $request) }}" class="mt-4 flex gap-2">
                         @csrf
-                        <input name="message" required placeholder="{{ __('Message support…') }}" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <button class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-medium hover:bg-brand-700">{{ __('Send') }}</button>
+                        <input name="message" required placeholder="{{ __('Message support…') }}" class="input flex-1" aria-label="{{ __('Message support…') }}">
+                        <button class="btn btn-primary"><x-icon name="send" class="size-4" /> {{ __('Send') }}</button>
                     </form>
                 </div>
             @endforeach
@@ -65,33 +72,40 @@
 
         <div class="space-y-6">
             {{-- New request --}}
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 class="font-semibold mb-4">{{ __('Request verification help') }}</h2>
-                <form method="POST" action="{{ route('verification.store') }}" enctype="multipart/form-data" class="space-y-3">
+            <div class="card p-6">
+                <h2 class="section-title mb-5">{{ __('Request verification help') }}</h2>
+                <form method="POST" action="{{ route('verification.store') }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
-                    <select name="branch_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <select name="branch_id" required class="input" aria-label="{{ __('Branch') }}">
                         @foreach($branches as $branch)
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
                     </select>
-                    <textarea name="notes" rows="3" placeholder="{{ __('Describe your situation…') }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+                    <textarea name="notes" rows="3" placeholder="{{ __('Describe your situation…') }}" class="input resize-y" aria-label="{{ __('Describe your situation…') }}"></textarea>
                     <div>
-                        <label class="block text-xs text-slate-500 mb-1">{{ __('Documents (PDF/JPG/PNG, max 5)') }}</label>
-                        <input type="file" name="documents[]" multiple accept=".pdf,.jpg,.jpeg,.png" class="text-sm">
+                        <label class="label !text-xs !text-slate-400">{{ __('Documents (PDF/JPG/PNG, max 5)') }}</label>
+                        <input type="file" name="documents[]" multiple accept=".pdf,.jpg,.jpeg,.png" class="text-sm text-slate-500">
                     </div>
-                    <button class="w-full rounded-lg bg-brand-600 text-white py-2 text-sm font-medium hover:bg-brand-700">{{ __('Submit request') }}</button>
+                    <button class="btn btn-primary w-full"><x-icon name="badge-check" class="size-4" /> {{ __('Submit request') }}</button>
                 </form>
             </div>
 
             {{-- Checklist --}}
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 text-sm">
-                <h2 class="font-semibold mb-3">{{ __('Verification checklist') }}</h2>
-                <ul class="space-y-2 text-slate-600 list-disc ms-4">
-                    <li>{{ __('Business name matches your official registration (CR).') }}</li>
-                    <li>{{ __('Address matches the national address record.') }}</li>
-                    <li>{{ __('Phone number is reachable at the location.') }}</li>
-                    <li>{{ __('Signage photos: storefront with visible branding.') }}</li>
-                    <li>{{ __('For Google: be ready for a postcard, phone or video verification.') }}</li>
+            <div class="card p-6 text-sm">
+                <h2 class="section-title mb-4">{{ __('Verification checklist') }}</h2>
+                <ul class="space-y-2.5 text-slate-600">
+                    @foreach([
+                        __('Business name matches your official registration (CR).'),
+                        __('Address matches the national address record.'),
+                        __('Phone number is reachable at the location.'),
+                        __('Signage photos: storefront with visible branding.'),
+                        __('For Google: be ready for a postcard, phone or video verification.'),
+                    ] as $item)
+                        <li class="flex items-start gap-2.5">
+                            <x-icon name="check-circle" class="size-4 mt-0.5 shrink-0 text-emerald-500" />
+                            {{ $item }}
+                        </li>
+                    @endforeach
                 </ul>
             </div>
         </div>

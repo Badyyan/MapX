@@ -4,10 +4,9 @@
 
 @section('content')
     <div class="max-w-3xl space-y-6">
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between">
-                <span class="rounded-full px-3 py-1 text-xs font-medium
-                    {{ $post->status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+        <div class="card p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <span class="{{ $post->status === 'published' ? 'badge badge-success' : ($post->status === 'failed' ? 'badge badge-danger' : 'badge badge-neutral') }}">
                     {{ __(ucfirst($post->status)) }}
                 </span>
                 <div class="flex gap-2">
@@ -15,56 +14,56 @@
                         @if(in_array($post->status, ['draft', 'failed', 'partial'], true))
                             <form method="POST" action="{{ route('posts.publish', $post) }}">
                                 @csrf
-                                <button class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-medium hover:bg-brand-700">{{ __('Publish now') }}</button>
+                                <button class="btn btn-primary"><x-icon name="send" class="size-4" /> {{ __('Publish now') }}</button>
                             </form>
                         @endif
                         <form method="POST" action="{{ route('posts.destroy', $post) }}" onsubmit="return confirm('{{ __('Delete this post?') }}')">
                             @csrf @method('DELETE')
-                            <button class="rounded-lg bg-white border border-red-300 text-red-600 px-4 py-2 text-sm hover:bg-red-50">{{ __('Delete') }}</button>
+                            <button class="btn btn-danger"><x-icon name="trash" class="size-4" /> {{ __('Delete') }}</button>
                         </form>
                     @endif
                 </div>
             </div>
 
-            @if($post->title)<h2 class="mt-4 text-xl font-bold">{{ $post->title }}</h2>@endif
-            <p class="mt-3 whitespace-pre-line text-slate-700" dir="auto">{{ $post->content }}</p>
+            @if($post->title)<h2 class="mt-5 text-xl font-bold tracking-tight text-slate-900">{{ $post->title }}</h2>@endif
+            <p class="mt-3 whitespace-pre-line text-slate-700 leading-relaxed" dir="auto">{{ $post->content }}</p>
             @if($post->image_path)
-                <img src="{{ asset('storage/'.$post->image_path) }}" class="mt-4 rounded-xl max-h-80 object-cover" alt="">
+                <img src="{{ asset('storage/'.$post->image_path) }}" class="mt-5 rounded-xl max-h-80 object-cover ring-1 ring-slate-200" alt="">
             @endif
-            <div class="mt-4 text-xs text-slate-500">
-                {{ __('Created') }} {{ $post->created_at->format('M d, Y H:i') }}
-                @if($post->scheduled_at) · {{ __('Scheduled for') }} {{ $post->scheduled_at->format('M d, Y H:i') }} @endif
-                @if($post->cta_url) · CTA: {{ $post->cta_url }} @endif
+            <div class="mt-5 flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                <span class="inline-flex items-center gap-1.5"><x-icon name="calendar" class="size-3.5" /> {{ __('Created') }} {{ $post->created_at->format('M d, Y H:i') }}</span>
+                @if($post->scheduled_at)<span class="inline-flex items-center gap-1.5"><x-icon name="clock" class="size-3.5" /> {{ __('Scheduled for') }} {{ $post->scheduled_at->format('M d, Y H:i') }}</span>@endif
+                @if($post->cta_url)<span class="inline-flex items-center gap-1.5"><x-icon name="link" class="size-3.5" /> {{ $post->cta_url }}</span>@endif
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h3 class="font-semibold mb-4">{{ __('Delivery status per platform') }}</h3>
+        <div class="table-wrap">
+            <div class="px-6 py-4 border-b border-slate-100 section-title">{{ __('Delivery status per platform') }}</div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                <table class="table-base">
+                    <thead>
                         <tr>
-                            <th class="text-start px-4 py-2">{{ __('Branch') }}</th>
-                            <th class="text-start px-4 py-2">{{ __('Platform') }}</th>
-                            <th class="text-start px-4 py-2">{{ __('Status') }}</th>
-                            <th class="text-start px-4 py-2">{{ __('Published') }}</th>
+                            <th>{{ __('Branch') }}</th>
+                            <th>{{ __('Platform') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th>{{ __('Published') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody>
                         @forelse($post->statuses as $status)
                             <tr>
-                                <td class="px-4 py-2">{{ $status->branch?->name }}</td>
-                                <td class="px-4 py-2">{{ config("mapx.platforms.{$status->platform}.name", $status->platform) }}</td>
-                                <td class="px-4 py-2">
-                                    <span class="rounded-full px-2 py-0.5 text-xs {{ $status->status === 'published' ? 'bg-emerald-100 text-emerald-700' : ($status->status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600') }}">
+                                <td>{{ $status->branch?->name }}</td>
+                                <td>{{ config("mapx.platforms.{$status->platform}.name", $status->platform) }}</td>
+                                <td>
+                                    <span class="{{ $status->status === 'published' ? 'badge badge-success' : ($status->status === 'failed' ? 'badge badge-danger' : 'badge badge-neutral') }}">
                                         {{ __(ucfirst($status->status)) }}
                                     </span>
-                                    @if($status->error)<div class="text-xs text-red-500 mt-1">{{ Str::limit($status->error, 80) }}</div>@endif
+                                    @if($status->error)<p class="text-xs text-red-500 mt-1">{{ Str::limit($status->error, 80) }}</p>@endif
                                 </td>
-                                <td class="px-4 py-2 text-slate-500">{{ $status->published_at?->format('M d, H:i') ?? '—' }}</td>
+                                <td class="text-slate-400">{{ $status->published_at?->format('M d, H:i') ?? '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">{{ __('Not delivered yet.') }}</td></tr>
+                            <tr><td colspan="4" class="!py-8 text-center text-slate-400">{{ __('Not delivered yet.') }}</td></tr>
                         @endforelse
                     </tbody>
                 </table>

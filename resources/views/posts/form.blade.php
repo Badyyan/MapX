@@ -6,54 +6,56 @@
     <form method="POST" action="{{ route('posts.store') }}" enctype="multipart/form-data" class="max-w-3xl space-y-6" id="post-form">
         @csrf
 
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold">{{ __('Content') }}</h2>
+        <div class="card p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="section-title flex items-center gap-2"><x-icon name="file-text" class="size-4 text-slate-400" /> {{ __('Content') }}</h2>
                 <div class="flex items-center gap-2">
-                    <input id="ai-topic" placeholder="{{ __('Topic, e.g. Ramadan offer') }}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm w-56">
-                    <button type="button" onclick="generateDraft()" class="rounded-lg bg-violet-50 text-violet-700 border border-violet-200 px-3 py-1.5 text-sm hover:bg-violet-100">✨ {{ __('AI draft') }}</button>
+                    <input id="ai-topic" placeholder="{{ __('Topic, e.g. Ramadan offer') }}" class="input !w-56 !py-2" aria-label="{{ __('Topic, e.g. Ramadan offer') }}">
+                    <button type="button" onclick="generateDraft()" class="btn btn-ai btn-sm !py-2">
+                        <x-icon name="sparkles" class="size-3.5" /> {{ __('AI draft') }}
+                    </button>
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">{{ __('Title (optional)') }}</label>
-                <input name="title" value="{{ old('title') }}" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <label for="title" class="label">{{ __('Title (optional)') }}</label>
+                <input id="title" name="title" value="{{ old('title') }}" class="input">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">{{ __('Post text') }} *</label>
-                <textarea name="content" id="post-content" rows="6" required class="w-full rounded-lg border border-slate-300 px-3 py-2">{{ old('content') }}</textarea>
+                <label for="post-content" class="label">{{ __('Post text') }} <span class="text-red-500">*</span></label>
+                <textarea name="content" id="post-content" rows="6" required class="input resize-y">{{ old('content') }}</textarea>
             </div>
             <input type="hidden" name="ai_generated" id="ai-generated" value="0">
-            <div class="grid sm:grid-cols-2 gap-4">
+            <div class="grid sm:grid-cols-2 gap-5">
                 <div>
-                    <label class="block text-sm font-medium mb-1">{{ __('Image (required for Instagram)') }}</label>
-                    <input type="file" name="image" accept="image/*" class="text-sm">
+                    <label class="label">{{ __('Image (required for Instagram)') }}</label>
+                    <input type="file" name="image" accept="image/*" class="text-sm text-slate-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">{{ __('Call-to-action URL (optional)') }}</label>
-                    <input name="cta_url" value="{{ old('cta_url') }}" placeholder="https://…" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                    <label for="cta_url" class="label">{{ __('Call-to-action URL (optional)') }}</label>
+                    <input id="cta_url" name="cta_url" value="{{ old('cta_url') }}" placeholder="https://…" class="input" dir="ltr">
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-            <h2 class="font-semibold">{{ __('Destinations') }}</h2>
+        <div class="card p-6 space-y-5">
+            <h2 class="section-title flex items-center gap-2"><x-icon name="send" class="size-4 text-slate-400" /> {{ __('Destinations') }}</h2>
             <div>
-                <label class="block text-sm font-medium mb-2">{{ __('Platforms') }} *</label>
-                <div class="flex flex-wrap gap-3">
+                <span class="label">{{ __('Platforms') }} <span class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-2.5">
                     @foreach($platforms as $key => $platform)
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm cursor-pointer has-checked:border-brand-500 has-checked:bg-brand-50">
-                            <input type="checkbox" name="platforms[]" value="{{ $key }}" @checked(in_array($key, old('platforms', []), true)) class="rounded border-slate-300">
+                        <label class="flex items-center gap-2 rounded-lg ring-1 ring-inset ring-slate-200 px-3.5 py-2.5 text-sm cursor-pointer transition-all hover:ring-slate-300 has-checked:ring-2 has-checked:ring-brand-500 has-checked:bg-brand-50/50">
+                            <input type="checkbox" name="platforms[]" value="{{ $key }}" @checked(in_array($key, old('platforms', []), true)) class="checkbox">
                             {{ $platform['name'] }}
                         </label>
                     @endforeach
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-2">{{ __('Branches') }} *</label>
-                <div class="flex flex-wrap gap-3 max-h-40 overflow-y-auto">
+                <span class="label">{{ __('Branches') }} <span class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-2.5 max-h-44 overflow-y-auto">
                     @foreach($branches as $branch)
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm cursor-pointer has-checked:border-brand-500 has-checked:bg-brand-50">
-                            <input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array($branch->id, old('branch_ids', []), false)) class="rounded border-slate-300">
+                        <label class="flex items-center gap-2 rounded-lg ring-1 ring-inset ring-slate-200 px-3.5 py-2.5 text-sm cursor-pointer transition-all hover:ring-slate-300 has-checked:ring-2 has-checked:ring-brand-500 has-checked:bg-brand-50/50">
+                            <input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array($branch->id, old('branch_ids', []), false)) class="checkbox">
                             {{ $branch->name }}
                         </label>
                     @endforeach
@@ -61,19 +63,19 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-            <h2 class="font-semibold">{{ __('Timing') }}</h2>
-            <div class="flex flex-wrap items-center gap-4">
-                <label class="flex items-center gap-2 text-sm"><input type="radio" name="action" value="publish" checked> {{ __('Publish now') }}</label>
-                <label class="flex items-center gap-2 text-sm"><input type="radio" name="action" value="schedule"> {{ __('Schedule') }}</label>
-                <label class="flex items-center gap-2 text-sm"><input type="radio" name="action" value="draft"> {{ __('Save as draft') }}</label>
-                <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <div class="card p-6 space-y-5">
+            <h2 class="section-title flex items-center gap-2"><x-icon name="clock" class="size-4 text-slate-400" /> {{ __('Timing') }}</h2>
+            <div class="flex flex-wrap items-center gap-5">
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="action" value="publish" checked class="checkbox !rounded-full"> {{ __('Publish now') }}</label>
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="action" value="schedule" class="checkbox !rounded-full"> {{ __('Schedule') }}</label>
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="action" value="draft" class="checkbox !rounded-full"> {{ __('Save as draft') }}</label>
+                <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}" class="input !w-auto !py-2" aria-label="{{ __('Schedule') }}">
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <button class="rounded-lg bg-brand-600 text-white px-6 py-2.5 font-medium hover:bg-brand-700">{{ __('Save post') }}</button>
-            <a href="{{ route('posts.index') }}" class="text-sm text-slate-500 hover:underline">{{ __('Cancel') }}</a>
+            <button class="btn btn-primary px-6"><x-icon name="check" class="size-4" /> {{ __('Save post') }}</button>
+            <a href="{{ route('posts.index') }}" class="btn btn-ghost">{{ __('Cancel') }}</a>
         </div>
     </form>
 

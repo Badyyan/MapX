@@ -3,8 +3,8 @@
 @section('title', __('Analytics'))
 
 @section('content')
-    <form method="GET" class="flex items-center gap-2">
-        <select name="branch_id" onchange="this.form.submit()" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+    <form method="GET">
+        <select name="branch_id" onchange="this.form.submit()" class="input !w-auto" aria-label="{{ __('Branch') }}">
             <option value="">{{ __('All branches') }}</option>
             @foreach($branches as $branch)
                 <option value="{{ $branch->id }}" @selected($branchId == $branch->id)>{{ $branch->name }}</option>
@@ -13,45 +13,45 @@
     </form>
 
     {{-- KPI row --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">{{ __('Presence health') }}</div>
-            <div class="mt-1 text-3xl font-bold text-brand-600">{{ $healthScore }}%</div>
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 animate-stagger">
+        <div class="card p-5">
+            <p class="stat-label">{{ __('Presence health') }}</p>
+            <p class="stat-value !text-brand-600">{{ $healthScore }}%</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">{{ __('Avg rating') }}</div>
-            <div class="mt-1 text-3xl font-bold text-amber-500">{{ $reviewKpis['average'] ?? '—' }}</div>
+        <div class="card p-5">
+            <p class="stat-label">{{ __('Avg rating') }}</p>
+            <p class="stat-value !text-amber-500">{{ $reviewKpis['average'] ?? '—' }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">{{ __('Reviews') }}</div>
-            <div class="mt-1 text-3xl font-bold">{{ number_format($reviewKpis['total']) }}</div>
+        <div class="card p-5">
+            <p class="stat-label">{{ __('Reviews') }}</p>
+            <p class="stat-value">{{ number_format($reviewKpis['total']) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">📞 {{ __('Calls') }}</div>
-            <div class="mt-1 text-3xl font-bold">{{ number_format($actionTotals['calls'] ?? 0) }}</div>
+        <div class="card p-5">
+            <p class="stat-label flex items-center gap-1.5"><x-icon name="phone" class="size-3" /> {{ __('Calls') }}</p>
+            <p class="stat-value">{{ number_format($actionTotals['calls'] ?? 0) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">🧭 {{ __('Routes') }}</div>
-            <div class="mt-1 text-3xl font-bold">{{ number_format($actionTotals['routes'] ?? 0) }}</div>
+        <div class="card p-5">
+            <p class="stat-label flex items-center gap-1.5"><x-icon name="navigation" class="size-3" /> {{ __('Routes') }}</p>
+            <p class="stat-value">{{ number_format($actionTotals['routes'] ?? 0) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="text-xs text-slate-500 uppercase">🌐 {{ __('Clicks') }}</div>
-            <div class="mt-1 text-3xl font-bold">{{ number_format($actionTotals['website_clicks'] ?? 0) }}</div>
+        <div class="card p-5">
+            <p class="stat-label flex items-center gap-1.5"><x-icon name="globe" class="size-3" /> {{ __('Clicks') }}</p>
+            <p class="stat-value">{{ number_format($actionTotals['website_clicks'] ?? 0) }}</p>
         </div>
     </div>
 
     {{-- Actions chart --}}
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
-        <h2 class="font-semibold mb-4">{{ __('Customer actions — last 30 days') }}</h2>
+    <div class="card p-6">
+        <h2 class="section-title mb-5">{{ __('Customer actions — last 30 days') }}</h2>
         @php
             $actionsChart = [
                 'type' => 'bar',
                 'data' => [
                     'labels' => array_map(fn ($d) => date('M d', strtotime($d)), $actions['labels']),
                     'datasets' => [
-                        ['label' => __('Calls'), 'data' => $actions['series']['calls'] ?? [], 'backgroundColor' => '#3563fb'],
-                        ['label' => __('Routes'), 'data' => $actions['series']['routes'] ?? [], 'backgroundColor' => '#10b981'],
-                        ['label' => __('Website clicks'), 'data' => $actions['series']['website_clicks'] ?? [], 'backgroundColor' => '#f59e0b'],
+                        ['label' => __('Calls'), 'data' => $actions['series']['calls'] ?? [], 'backgroundColor' => '#4f46e5', 'borderRadius' => 3],
+                        ['label' => __('Routes'), 'data' => $actions['series']['routes'] ?? [], 'backgroundColor' => '#10b981', 'borderRadius' => 3],
+                        ['label' => __('Website clicks'), 'data' => $actions['series']['website_clicks'] ?? [], 'backgroundColor' => '#f59e0b', 'borderRadius' => 3],
                     ],
                 ],
                 'options' => ['scales' => ['x' => ['stacked' => true], 'y' => ['stacked' => true]]],
@@ -61,36 +61,36 @@
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6">
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-semibold mb-4">{{ __('Rating trend') }}</h2>
+        <div class="card p-6">
+            <h2 class="section-title mb-5">{{ __('Rating trend') }}</h2>
             @php
                 $trendChart = [
                     'type' => 'line',
                     'data' => [
                         'labels' => $ratingTrend['labels'],
-                        'datasets' => [['label' => __('Average rating'), 'data' => $ratingTrend['values'], 'borderColor' => '#f59e0b', 'tension' => 0.35]],
+                        'datasets' => [['label' => __('Average rating'), 'data' => $ratingTrend['values'], 'borderColor' => '#f59e0b', 'tension' => 0.35, 'pointBackgroundColor' => '#f59e0b']],
                     ],
                     'options' => ['scales' => ['y' => ['min' => 1, 'max' => 5]]],
                 ];
             @endphp
             <canvas data-chart="{{ json_encode($trendChart) }}"></canvas>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-semibold mb-4">{{ __('Rating distribution') }}</h2>
+        <div class="card p-6">
+            <h2 class="section-title mb-5">{{ __('Rating distribution') }}</h2>
             @php
                 $distributionChart = [
                     'type' => 'bar',
                     'data' => [
                         'labels' => array_map(fn ($s) => $s.' ★', array_keys($ratingDistribution)),
-                        'datasets' => [['label' => __('Reviews'), 'data' => array_values($ratingDistribution), 'backgroundColor' => '#3563fb']],
+                        'datasets' => [['label' => __('Reviews'), 'data' => array_values($ratingDistribution), 'backgroundColor' => '#4f46e5', 'borderRadius' => 3]],
                     ],
                     'options' => ['indexAxis' => 'y', 'plugins' => ['legend' => ['display' => false]]],
                 ];
             @endphp
             <canvas data-chart="{{ json_encode($distributionChart) }}"></canvas>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-semibold mb-4">{{ __('Sentiment') }}</h2>
+        <div class="card p-6">
+            <h2 class="section-title mb-5">{{ __('Sentiment') }}</h2>
             @php
                 $sentimentChart = [
                     'type' => 'doughnut',
@@ -98,9 +98,12 @@
                         'labels' => [__('Positive'), __('Neutral'), __('Negative')],
                         'datasets' => [[
                             'data' => [$sentiment['positive'] ?? 0, $sentiment['neutral'] ?? 0, $sentiment['negative'] ?? 0],
-                            'backgroundColor' => ['#10b981', '#94a3b8', '#ef4444'],
+                            'backgroundColor' => ['#10b981', '#cbd5e1', '#f43f5e'],
+                            'borderWidth' => 0,
+                            'spacing' => 2,
                         ]],
                     ],
+                    'options' => ['cutout' => '68%'],
                 ];
             @endphp
             <canvas data-chart="{{ json_encode($sentimentChart) }}"></canvas>
@@ -109,24 +112,24 @@
 
     {{-- Topics + QR --}}
     <div class="grid lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-semibold mb-4">{{ __('What customers talk about') }}</h2>
+        <div class="card p-6">
+            <h2 class="section-title mb-5">{{ __('What customers talk about') }}</h2>
             <div class="flex flex-wrap gap-2">
                 @forelse($topics as $topic => $count)
-                    <span class="rounded-full bg-brand-50 text-brand-700 px-3 py-1.5 text-sm">{{ $topic }} <span class="text-brand-400">×{{ $count }}</span></span>
+                    <span class="badge badge-brand !py-1.5 !px-3 !text-sm !font-normal">{{ $topic }} <span class="text-brand-400 font-medium">×{{ $count }}</span></span>
                 @empty
-                    <p class="text-sm text-slate-500">{{ __('Topics appear once reviews are analyzed.') }}</p>
+                    <p class="text-sm text-slate-400">{{ __('Topics appear once reviews are analyzed.') }}</p>
                 @endforelse
             </div>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-semibold mb-4">{{ __('QR review funnel') }}</h2>
+        <div class="card p-6">
+            <h2 class="section-title mb-5">{{ __('QR review funnel') }}</h2>
             @php
                 $qrChart = [
                     'type' => 'bar',
                     'data' => [
                         'labels' => [__('Scans'), __('To public review'), __('Captured internally')],
-                        'datasets' => [['label' => 'QR', 'data' => [$qrFunnel['scans'], $qrFunnel['positive'], $qrFunnel['negative']], 'backgroundColor' => ['#3563fb', '#10b981', '#ef4444']]],
+                        'datasets' => [['label' => 'QR', 'data' => [$qrFunnel['scans'], $qrFunnel['positive'], $qrFunnel['negative']], 'backgroundColor' => ['#4f46e5', '#10b981', '#f43f5e'], 'borderRadius' => 3]],
                     ],
                     'options' => ['plugins' => ['legend' => ['display' => false]]],
                 ];
