@@ -18,13 +18,13 @@ class FetchPlatformReviews implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public PlatformConnection $connection)
+    public function __construct(public PlatformConnection $platformConnection)
     {
     }
 
     public function handle(PlatformManager $platforms, AiService $ai, AutoReplyEngine $autoReply): void
     {
-        $connection = $this->connection->fresh();
+        $connection = $this->platformConnection->fresh();
         $branch = $connection->branch()->withoutGlobalScope('company')->first();
 
         if (! $branch) {

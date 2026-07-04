@@ -35,7 +35,7 @@ class IntegrationController extends Controller
 
         abort_unless(array_key_exists($data['platform'], config('mapx.platforms')), 404);
 
-        $branchIds = $data['branch_id']
+        $branchIds = ($data['branch_id'] ?? null)
             ? [$data['branch_id']]
             : Branch::pluck('id')->all();
 

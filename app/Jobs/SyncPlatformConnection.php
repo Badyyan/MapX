@@ -17,13 +17,13 @@ class SyncPlatformConnection implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public PlatformConnection $connection)
+    public function __construct(public PlatformConnection $platformConnection)
     {
     }
 
     public function handle(PlatformManager $platforms): void
     {
-        $connection = $this->connection->fresh();
+        $connection = $this->platformConnection->fresh();
         $branch = $connection->branch()->withoutGlobalScope('company')->first();
 
         if (! $branch) {
