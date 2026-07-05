@@ -4,7 +4,7 @@
 
 @section('content')
     {{-- KPI row --}}
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 animate-stagger">
+    <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-4 animate-stagger">
         <div class="card p-5">
             <p class="stat-label">{{ __('Presence health') }}</p>
             <p class="stat-value {{ $healthScore >= 70 ? '!text-emerald-600' : ($healthScore >= 40 ? '!text-amber-500' : '!text-red-500') }}">{{ $healthScore }}%</p>
@@ -23,7 +23,7 @@
         </div>
         <div class="card p-5">
             <p class="stat-label">{{ __('Average rating') }}</p>
-            <div class="mt-1.5 flex items-center gap-2">
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                 <span class="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">{{ $reviewKpis['average'] ?? '—' }}</span>
                 <x-rating :value="$reviewKpis['average'] ?? 0" class="size-3.5" />
             </div>

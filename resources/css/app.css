@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
@@ -152,7 +154,7 @@
 
     /* ---- Cards ---------------------------------------------------------- */
     .card {
-        @apply bg-white rounded-2xl ring-1 ring-slate-900/[0.06] shadow-(--shadow-card);
+        @apply bg-white rounded-2xl ring-1 ring-slate-900/[0.06] shadow-(--shadow-card) min-w-0 break-words;
     }
     .card-hover {
         @apply transition-all duration-200 hover:shadow-(--shadow-card-hover) hover:ring-slate-900/10 hover:-translate-y-0.5;
@@ -254,3 +256,85 @@
     .animate-stagger > *:nth-child(5) { animation-delay: 160ms; }
     .animate-stagger > *:nth-child(6) { animation-delay: 200ms; }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Dark mode — Apple dark idiom. The neutral ramp is inverted and the accent
+   shifts to iOS dark blue, so every screen adapts from the same tokens.
+--------------------------------------------------------------------------- */
+.dark {
+    color-scheme: dark;
+
+    --color-slate-50: #1a1a1d;
+    --color-slate-100: #2a2a2e;
+    --color-slate-200: #3a3a3e;
+    --color-slate-300: #48484c;
+    --color-slate-400: #8e8e93;
+    --color-slate-500: #a1a1a6;
+    --color-slate-600: #c7c7cc;
+    --color-slate-700: #d9d9de;
+    --color-slate-800: #e8e8ed;
+    --color-slate-900: #f5f5f7;
+    --color-slate-950: #ffffff;
+
+    --color-brand-50: #10263f;
+    --color-brand-100: #14324f;
+    --color-brand-500: #3f9bff;
+    --color-brand-600: #0a84ff;
+
+    --color-emerald-50: #102b1a;
+    --color-emerald-100: #16381f;
+    --color-emerald-600: #32d74b;
+    --color-emerald-700: #4ade68;
+
+    --color-red-50: #391411;
+    --color-red-100: #471a16;
+    --color-red-600: #ff453a;
+    --color-red-700: #ff6961;
+
+    --color-amber-50: #38260a;
+    --color-amber-100: #46300c;
+    --color-amber-700: #ffb340;
+    --color-amber-800: #ffc971;
+
+    --color-rose-50: #3c1019;
+    --color-rose-700: #ff6482;
+
+    --color-violet-50: #2d1839;
+    --color-violet-100: #3a1f4a;
+    --color-violet-200: #4c2960;
+    --color-violet-300: #6b3a86;
+    --color-violet-700: #d29aef;
+
+    --color-sky-50: #0d2b33;
+    --color-sky-700: #64d2e4;
+
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-card-hover: 0 6px 16px -4px rgb(0 0 0 / 0.5);
+    --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.7);
+}
+
+.dark body {
+    background-color: #131315;
+}
+
+/* Surfaces: everything that is white in light mode becomes an elevated
+   dark surface. */
+.dark .card,
+.dark .table-wrap,
+.dark .bg-white {
+    background-color: #1f1f22;
+}
+
+.dark .input,
+.dark .btn-secondary,
+.dark .btn-danger {
+    background-color: #2a2a2e;
+}
+.dark .btn-secondary:hover { background-color: #333338; }
+.dark .input::placeholder { color: #6e6e73; }
+
+.dark .table-base thead { background-color: rgb(255 255 255 / 0.03); }
+.dark .table-base tbody tr:hover { background-color: rgb(255 255 255 / 0.03); }
+
+.dark .kbd { background-color: #2a2a2e; border-color: #3a3a3e; }

@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', __('Dashboard')) — {{ config('app.name', 'MapX') }}</title>
+    <script>
+        // Apply the stored (or system) theme before first paint to avoid flashing.
+        if (localStorage.theme === 'dark' || (! ('theme' in localStorage) && matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700|ibm-plex-sans-arabic:400,500,600,700&display=swap">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -13,7 +19,7 @@
 <div class="min-h-screen lg:flex">
 
     {{-- Sidebar --}}
-    <aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-white border-e border-slate-200/80 sticky top-0 h-screen">
+    <aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-white/85 dark:bg-[#1d1d1f]/85 backdrop-blur-xl border-e border-slate-200/80 sticky top-0 h-screen">
         <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 px-5 h-16 border-b border-slate-100">
             <span class="grid place-items-center size-8 rounded-lg bg-brand-600 text-white shadow-sm shadow-brand-600/30">
                 <x-icon name="map-pin" class="size-4.5" />
@@ -106,7 +112,7 @@
 
     {{-- Main column --}}
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between gap-3 px-4 lg:px-8 sticky top-0 z-20">
+        <header class="h-16 bg-white/70 dark:bg-[#1d1d1f]/70 backdrop-blur-xl border-b border-slate-200/80 flex items-center justify-between gap-3 px-4 lg:px-8 sticky top-0 z-20">
             <div class="flex items-center gap-3 min-w-0">
                 <a href="{{ route('dashboard') }}" class="lg:hidden flex items-center gap-2" aria-label="MapX">
                     <span class="grid place-items-center size-7 rounded-lg bg-brand-600 text-white"><x-icon name="map-pin" class="size-4" /></span>
@@ -122,6 +128,10 @@
                         {{ __('Trial ends :date', ['date' => $sub->trial_ends_at->diffForHumans()]) }}
                     </a>
                 @endif
+                <button type="button" onclick="toggleTheme()" class="btn btn-secondary btn-sm !p-2" aria-label="{{ __('Toggle theme') }}">
+                    <span data-theme-icon="light"><x-icon name="moon" class="size-3.5" /></span>
+                    <span data-theme-icon="dark" class="hidden"><x-icon name="sun" class="size-3.5" /></span>
+                </button>
                 <a href="{{ route('locale.switch', app()->getLocale() === 'ar' ? 'en' : 'ar') }}"
                    class="btn btn-secondary btn-sm" aria-label="{{ __('Switch language') }}">
                     <x-icon name="languages" class="size-3.5" />
@@ -137,7 +147,7 @@
         </header>
 
         {{-- Mobile nav --}}
-        <nav class="lg:hidden bg-white border-b border-slate-200/80 flex overflow-x-auto gap-1 px-3 py-2 text-sm" aria-label="{{ __('Main navigation') }}">
+        <nav class="lg:hidden bg-white dark:bg-[#1d1d1f] border-b border-slate-200/80 flex overflow-x-auto gap-1 px-3 py-2 text-sm" aria-label="{{ __('Main navigation') }}">
             @php($mActive = fn ($route) => request()->routeIs($route) ? 'bg-brand-50 text-brand-700' : 'text-slate-500')
             <a class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium {{ $mActive('dashboard') }}" href="{{ route('dashboard') }}"><x-icon name="layout-dashboard" class="size-4" /> {{ __('Dashboard') }}</a>
             @if($user->hasPermission('branches.view'))<a class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium {{ $mActive('branches.*') }}" href="{{ route('branches.index') }}"><x-icon name="map-pin" class="size-4" /> {{ __('Branches') }}</a>@endif

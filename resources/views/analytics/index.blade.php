@@ -13,7 +13,7 @@
     </form>
 
     {{-- KPI row --}}
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 animate-stagger">
+    <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-4 animate-stagger">
         <div class="card p-5">
             <p class="stat-label">{{ __('Presence health') }}</p>
             <p class="stat-value !text-brand-600">{{ $healthScore }}%</p>
