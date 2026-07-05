@@ -49,9 +49,9 @@
                 'data' => [
                     'labels' => array_map(fn ($d) => date('M d', strtotime($d)), $actions['labels']),
                     'datasets' => [
-                        ['label' => __('Calls'), 'data' => $actions['series']['calls'] ?? [], 'backgroundColor' => '#4f46e5', 'borderRadius' => 3],
-                        ['label' => __('Routes'), 'data' => $actions['series']['routes'] ?? [], 'backgroundColor' => '#10b981', 'borderRadius' => 3],
-                        ['label' => __('Website clicks'), 'data' => $actions['series']['website_clicks'] ?? [], 'backgroundColor' => '#f59e0b', 'borderRadius' => 3],
+                        ['label' => __('Calls'), 'data' => $actions['series']['calls'] ?? [], 'backgroundColor' => '#0071e3', 'borderRadius' => 3],
+                        ['label' => __('Routes'), 'data' => $actions['series']['routes'] ?? [], 'backgroundColor' => '#34c759', 'borderRadius' => 3],
+                        ['label' => __('Website clicks'), 'data' => $actions['series']['website_clicks'] ?? [], 'backgroundColor' => '#ff9500', 'borderRadius' => 3],
                     ],
                 ],
                 'options' => ['scales' => ['x' => ['stacked' => true], 'y' => ['stacked' => true]]],
@@ -68,7 +68,7 @@
                     'type' => 'line',
                     'data' => [
                         'labels' => $ratingTrend['labels'],
-                        'datasets' => [['label' => __('Average rating'), 'data' => $ratingTrend['values'], 'borderColor' => '#f59e0b', 'tension' => 0.35, 'pointBackgroundColor' => '#f59e0b']],
+                        'datasets' => [['label' => __('Average rating'), 'data' => $ratingTrend['values'], 'borderColor' => '#ff9500', 'tension' => 0.35, 'pointBackgroundColor' => '#ff9500']],
                     ],
                     'options' => ['scales' => ['y' => ['min' => 1, 'max' => 5]]],
                 ];
@@ -82,7 +82,7 @@
                     'type' => 'bar',
                     'data' => [
                         'labels' => array_map(fn ($s) => $s.' ★', array_keys($ratingDistribution)),
-                        'datasets' => [['label' => __('Reviews'), 'data' => array_values($ratingDistribution), 'backgroundColor' => '#4f46e5', 'borderRadius' => 3]],
+                        'datasets' => [['label' => __('Reviews'), 'data' => array_values($ratingDistribution), 'backgroundColor' => '#0071e3', 'borderRadius' => 3]],
                     ],
                     'options' => ['indexAxis' => 'y', 'plugins' => ['legend' => ['display' => false]]],
                 ];
@@ -98,7 +98,7 @@
                         'labels' => [__('Positive'), __('Neutral'), __('Negative')],
                         'datasets' => [[
                             'data' => [$sentiment['positive'] ?? 0, $sentiment['neutral'] ?? 0, $sentiment['negative'] ?? 0],
-                            'backgroundColor' => ['#10b981', '#cbd5e1', '#f43f5e'],
+                            'backgroundColor' => ['#34c759', '#d2d2d7', '#ff3b30'],
                             'borderWidth' => 0,
                             'spacing' => 2,
                         ]],
@@ -129,7 +129,7 @@
                     'type' => 'bar',
                     'data' => [
                         'labels' => [__('Scans'), __('To public review'), __('Captured internally')],
-                        'datasets' => [['label' => 'QR', 'data' => [$qrFunnel['scans'], $qrFunnel['positive'], $qrFunnel['negative']], 'backgroundColor' => ['#4f46e5', '#10b981', '#f43f5e'], 'borderRadius' => 3]],
+                        'datasets' => [['label' => 'QR', 'data' => [$qrFunnel['scans'], $qrFunnel['positive'], $qrFunnel['negative']], 'backgroundColor' => ['#0071e3', '#34c759', '#ff3b30'], 'borderRadius' => 3]],
                     ],
                     'options' => ['plugins' => ['legend' => ['display' => false]]],
                 ];

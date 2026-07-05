@@ -5,21 +5,75 @@
 @source '../views/**/*.blade.php';
 
 @theme {
-    --font-sans: 'Inter', 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, ui-sans-serif, system-ui, sans-serif,
+    --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter',
+        'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* Brand — refined indigo */
-    --color-brand-50: #eef2ff;
-    --color-brand-100: #e0e7ff;
-    --color-brand-200: #c7d2fe;
-    --color-brand-300: #a5b4fc;
-    --color-brand-400: #818cf8;
-    --color-brand-500: #6366f1;
-    --color-brand-600: #4f46e5;
-    --color-brand-700: #4338ca;
-    --color-brand-800: #3730a3;
-    --color-brand-900: #312e81;
-    --color-brand-950: #1e1b4b;
+    /* Brand — Apple blue */
+    --color-brand-50: #eef6ff;
+    --color-brand-100: #d9ecff;
+    --color-brand-200: #b3d9ff;
+    --color-brand-300: #7cbeff;
+    --color-brand-400: #3f9bff;
+    --color-brand-500: #0a84ff;
+    --color-brand-600: #0071e3;
+    --color-brand-700: #005bb8;
+    --color-brand-800: #004a94;
+    --color-brand-900: #003e78;
+    --color-brand-950: #002850;
+
+    /* Neutrals — Apple gray (f5f5f7 canvas, 1d1d1f ink, d2d2d7 hairlines) */
+    --color-slate-50: #f5f5f7;
+    --color-slate-100: #e8e8ed;
+    --color-slate-200: #d2d2d7;
+    --color-slate-300: #c7c7cc;
+    --color-slate-400: #aeaeb2;
+    --color-slate-500: #8e8e93;
+    --color-slate-600: #6e6e73;
+    --color-slate-700: #48484a;
+    --color-slate-800: #2c2c2e;
+    --color-slate-900: #1d1d1f;
+    --color-slate-950: #161617;
+
+    /* Semantic — Apple system colors */
+    --color-emerald-50: #ecfbf1;
+    --color-emerald-100: #d5f5e0;
+    --color-emerald-200: #aeeac2;
+    --color-emerald-300: #86e3a4;
+    --color-emerald-400: #5cd57e;
+    --color-emerald-500: #34c759;
+    --color-emerald-600: #2db34e;
+    --color-emerald-700: #1f9440;
+    --color-red-50: #fff0ef;
+    --color-red-100: #ffdcda;
+    --color-red-200: #ffc2be;
+    --color-red-300: #ff958e;
+    --color-red-400: #ff6961;
+    --color-red-500: #ff4b40;
+    --color-red-600: #ff3b30;
+    --color-red-700: #d70015;
+    --color-amber-50: #fff7eb;
+    --color-amber-100: #ffedd1;
+    --color-amber-200: #ffdda8;
+    --color-amber-300: #ffc971;
+    --color-amber-400: #ffb340;
+    --color-amber-500: #ff9f0a;
+    --color-amber-600: #f28b00;
+    --color-amber-700: #c67100;
+    --color-amber-800: #9e5a00;
+    --color-rose-50: #fff0f3;
+    --color-rose-100: #ffdbe2;
+    --color-rose-500: #ff2d55;
+    --color-rose-700: #d61c44;
+    --color-violet-50: #f9f0fd;
+    --color-violet-100: #f0ddfa;
+    --color-violet-200: #e3c3f5;
+    --color-violet-300: #d09eee;
+    --color-violet-600: #af52de;
+    --color-violet-700: #8e30c9;
+    --color-sky-50: #edf9fc;
+    --color-sky-600: #30b0c7;
+    --color-sky-700: #22879a;
 
     --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
     --shadow-card-hover: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 6px -2px rgb(15 23 42 / 0.05);
@@ -68,7 +122,7 @@
 @layer components {
     /* ---- Buttons -------------------------------------------------------- */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-4.5 py-2.5 text-sm font-medium
                transition-all duration-150 select-none cursor-pointer
                disabled:opacity-50 disabled:pointer-events-none
                active:scale-[0.98];
@@ -93,7 +147,7 @@
                hover:bg-violet-100 hover:ring-violet-300;
     }
     .btn-sm {
-        @apply px-3 py-1.5 text-xs rounded-md;
+        @apply px-3.5 py-1.5 text-xs rounded-full;
     }
 
     /* ---- Cards ---------------------------------------------------------- */
@@ -109,7 +163,7 @@
         @apply block text-sm font-medium text-slate-700 mb-1.5;
     }
     .input {
-        @apply w-full rounded-lg bg-white px-3.5 py-2.5 text-sm text-slate-900
+        @apply w-full rounded-xl bg-white px-3.5 py-2.5 text-sm text-slate-900
                ring-1 ring-inset ring-slate-200 placeholder:text-slate-400
                transition-shadow duration-150
                hover:ring-slate-300

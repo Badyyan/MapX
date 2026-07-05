@@ -20,7 +20,7 @@
                     <p class="text-sm text-slate-400">{{ __('No snapshots yet. Add keywords and run a refresh.') }}</p>
                 @else
                     @php
-                        $palette = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#0ea5e9'];
+                        $palette = ['#0071e3', '#34c759', '#ff9500', '#ff3b30', '#30b0c7'];
                         $rankChart = [
                             'type' => 'line',
                             'data' => [
