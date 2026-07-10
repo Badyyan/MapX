@@ -111,6 +111,31 @@ uploads to R2. Public URLs come from `AWS_URL` (set an R2 public bucket domain).
 
 ---
 
+## Troubleshooting
+
+### `Database file at path [.../database.sqlite] does not exist`
+
+This means `DB_CONNECTION` is still `sqlite` (the repo's local-dev default from
+`.env.example`) and no Postgres database has been wired up on the host yet.
+SQLite is fine for local development but must not be used in production here —
+Laravel Cloud (and most container platforms) run an **ephemeral filesystem**,
+so a SQLite file is wiped on every redeploy/restart and can't be shared across
+scaled instances, meaning data loss.
+
+Fix: provision the managed Postgres database from your host's dashboard, set
+`DB_CONNECTION=pgsql` plus the `DB_HOST`/`DB_PORT`/`DB_DATABASE`/`DB_USERNAME`/
+`DB_PASSWORD` variables from section 3 above, confirm `php artisan migrate
+--force` is wired into your deploy/release step (it is **not** automatic on
+most platforms — check for a "release command" or "post-deploy command"
+setting), then redeploy.
+
+### 500 with no visible error
+
+`APP_DEBUG` should stay `false` in production, but Laravel still writes the
+full exception to the app's server-side logs. Check the host's log viewer
+right after reproducing the error — that's the fastest way to find the actual
+cause without exposing stack traces publicly.
+
 ## Alternatives
 
 The app is a standard containerizable Laravel 12 project, so it also runs
