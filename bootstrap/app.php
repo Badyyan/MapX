@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
         ]);
 
+        // Payment gateways sign their webhooks; CSRF tokens don't apply.
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/*',
+        ]);
+
         $middleware->alias([
             'perm' => \App\Http\Middleware\EnsurePermission::class,
             'subscription' => \App\Http\Middleware\EnsureSubscriptionActive::class,

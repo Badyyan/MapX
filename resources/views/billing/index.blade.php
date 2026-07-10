@@ -3,6 +3,13 @@
 @section('title', __('Billing'))
 
 @section('content')
+    @unless($gatewayConfigured)
+        <div class="card flex items-center gap-3 px-4 py-3 !ring-amber-600/20 bg-amber-50/60 text-sm text-amber-800" role="status">
+            <x-icon name="alert-triangle" class="size-4.5 shrink-0 text-amber-600" />
+            {{ __('Sandbox billing: no payment gateway is configured, so subscriptions activate without charging. Add Stripe keys (see INTEGRATIONS.md) to take real payments.') }}
+        </div>
+    @endunless
+
     <div class="grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
             {{-- Current plan --}}
@@ -50,7 +57,7 @@
                     <form method="POST" action="{{ route('billing.subscribe') }}" class="mt-5">
                         @csrf
                         <input type="hidden" name="plan" value="monthly">
-                        <button class="btn btn-secondary w-full">{{ __('Choose monthly') }}</button>
+                        <button class="btn btn-secondary w-full">{{ $gatewayConfigured ? __('Pay monthly — secure checkout') : __('Choose monthly') }}</button>
                     </form>
                 </div>
                 <div class="card p-6 relative !ring-2 !ring-brand-500">
@@ -61,7 +68,7 @@
                     <form method="POST" action="{{ route('billing.subscribe') }}" class="mt-5">
                         @csrf
                         <input type="hidden" name="plan" value="yearly">
-                        <button class="btn btn-primary w-full">{{ __('Choose yearly') }}</button>
+                        <button class="btn btn-primary w-full">{{ $gatewayConfigured ? __('Pay yearly — secure checkout') : __('Choose yearly') }}</button>
                     </form>
                 </div>
             </div>

@@ -29,6 +29,9 @@ Route::prefix('f')->name('feedback.')->group(function () {
     Route::get('/{slug}/thanks', [FeedbackController::class, 'thanks'])->name('thanks');
 });
 
+/* Payment gateway webhooks (signature-verified, no session) */
+Route::post('/webhooks/stripe', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
+
 /* Guest auth */
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -45,6 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('perm:billing.manage')->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
         Route::post('/billing/subscribe', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+        Route::get('/billing/success', [BillingController::class, 'success'])->name('billing.success');
         Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
     });
 
@@ -69,6 +73,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/integrations', [IntegrationController::class, 'index'])
             ->middleware('perm:integrations.view')->name('integrations.index');
         Route::middleware('perm:integrations.manage')->group(function () {
+            /* Google Business Profile OAuth + location import */
+            Route::get('/integrations/google/redirect', [\App\Http\Controllers\GoogleIntegrationController::class, 'redirect'])->name('integrations.google.redirect');
+            Route::get('/integrations/google/callback', [\App\Http\Controllers\GoogleIntegrationController::class, 'callback'])->name('integrations.google.callback');
+            Route::get('/integrations/google/import', [\App\Http\Controllers\GoogleIntegrationController::class, 'showImport'])->name('integrations.google.import');
+            Route::post('/integrations/google/import', [\App\Http\Controllers\GoogleIntegrationController::class, 'import'])->name('integrations.google.import.store');
+            Route::delete('/integrations/google', [\App\Http\Controllers\GoogleIntegrationController::class, 'disconnect'])->name('integrations.google.disconnect');
+
+            /* Meta (Facebook Pages + Instagram Business) OAuth */
+            Route::get('/integrations/meta/redirect', [\App\Http\Controllers\MetaIntegrationController::class, 'redirect'])->name('integrations.meta.redirect');
+            Route::get('/integrations/meta/callback', [\App\Http\Controllers\MetaIntegrationController::class, 'callback'])->name('integrations.meta.callback');
+            Route::get('/integrations/meta/pages', [\App\Http\Controllers\MetaIntegrationController::class, 'showPages'])->name('integrations.meta.pages');
+            Route::post('/integrations/meta/pages/connect', [\App\Http\Controllers\MetaIntegrationController::class, 'connectPage'])->name('integrations.meta.connect-page');
+
             Route::post('/integrations/connect', [IntegrationController::class, 'connect'])->name('integrations.connect');
             Route::post('/integrations/sync-all', [IntegrationController::class, 'syncAll'])->name('integrations.sync-all');
             Route::post('/integrations/{connection}/sync', [IntegrationController::class, 'sync'])->name('integrations.sync');

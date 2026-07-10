@@ -6,22 +6,43 @@ use App\Models\Branch;
 use App\Models\PlatformConnection;
 use App\Models\Post;
 use App\Models\Review;
+use App\Services\Google\GoogleOAuthService;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Google Business Profile (FR-7): locations, posts, reviews, insights.
  *
- * Real mode uses the My Business APIs:
- *  - mybusinessbusinessinformation.googleapis.com (locations)
- *  - mybusiness.googleapis.com/v4 (reviews + replies)
- *  - businessprofileperformance.googleapis.com (insights)
- * OAuth2 tokens are stored encrypted on the PlatformConnection.
+ * Auth: the company-level connection (branch_id=null) holds the OAuth
+ * tokens; per-branch connections carry the location resource name in
+ * external_id ("locations/{id}") and the owning account in meta.account
+ * ("accounts/{id}"). Reviews/posts still use the v4 API, business info the
+ * v1 Business Information API, metrics the Business Profile Performance API.
  */
 class GoogleBusinessProfileAdapter extends BaseAdapter
 {
-    public function __construct()
+    public function __construct(private GoogleOAuthService $oauth)
     {
         parent::__construct('google');
+    }
+
+    private function token(PlatformConnection $connection): string
+    {
+        $companyConnection = $this->oauth->companyConnection($connection->company_id);
+
+        if (! $companyConnection) {
+            throw new \RuntimeException('Google is not connected for this company.');
+        }
+
+        return $this->oauth->tokenFor($companyConnection);
+    }
+
+    /** v4 resource path: accounts/{acc}/locations/{loc} */
+    private function v4Path(PlatformConnection $connection): string
+    {
+        $account = $connection->meta['account'] ?? null;
+        $location = str_replace('locations/', '', (string) $connection->external_id);
+
+        return "{$account}/locations/{$location}";
     }
 
     public function syncLocation(PlatformConnection $connection, Branch $branch): array
@@ -30,22 +51,17 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
             return parent::syncLocation($connection, $branch);
         }
 
-        $payload = [
+        $payload = array_filter([
             'title' => $branch->name,
-            'profile' => ['description' => $branch->description],
-            'storefrontAddress' => [
-                'addressLines' => [$branch->address],
-                'locality' => $branch->city,
-                'regionCode' => $branch->country,
-            ],
-            'latlng' => ['latitude' => $branch->lat, 'longitude' => $branch->lng],
-            'phoneNumbers' => ['primaryPhone' => $branch->phone],
+            'phoneNumbers' => $branch->phone ? ['primaryPhone' => $branch->phone] : null,
             'websiteUri' => $branch->website,
             'regularHours' => $this->mapHours($branch->hours),
-        ];
+        ]);
 
-        $response = Http::withToken($connection->access_token)
-            ->patch("https://mybusinessbusinessinformation.googleapis.com/v1/{$connection->external_id}", $payload);
+        $response = Http::withToken($this->token($connection))
+            ->patch("https://mybusinessbusinessinformation.googleapis.com/v1/{$connection->external_id}", array_merge($payload, [
+                'updateMask' => implode(',', array_keys($payload)),
+            ]));
 
         return [
             'sync_status' => $response->successful() ? 'synced' : 'error',
@@ -60,20 +76,20 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
             return [];
         }
 
-        $response = Http::withToken($connection->access_token)
-            ->get("https://mybusiness.googleapis.com/v4/{$connection->external_id}/reviews");
+        $response = Http::withToken($this->token($connection))
+            ->get('https://mybusiness.googleapis.com/v4/'.$this->v4Path($connection).'/reviews');
 
         if (! $response->successful()) {
             return [];
         }
 
-        return collect($response->json('reviews', []))->map(fn ($r) => [
-            'external_id' => $r['reviewId'],
-            'author_name' => $r['reviewer']['displayName'] ?? null,
-            'author_avatar' => $r['reviewer']['profilePhotoUrl'] ?? null,
-            'rating' => ['ONE' => 1, 'TWO' => 2, 'THREE' => 3, 'FOUR' => 4, 'FIVE' => 5][$r['starRating']] ?? null,
-            'content' => $r['comment'] ?? null,
-            'review_date' => $r['createTime'] ?? null,
+        return collect($response->json('reviews', []))->map(fn ($review) => [
+            'external_id' => $review['reviewId'],
+            'author_name' => $review['reviewer']['displayName'] ?? null,
+            'author_avatar' => $review['reviewer']['profilePhotoUrl'] ?? null,
+            'rating' => ['ONE' => 1, 'TWO' => 2, 'THREE' => 3, 'FOUR' => 4, 'FIVE' => 5][$review['starRating']] ?? null,
+            'content' => $review['comment'] ?? null,
+            'review_date' => $review['createTime'] ?? null,
         ])->all();
     }
 
@@ -83,8 +99,8 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
             return true;
         }
 
-        return Http::withToken($connection->access_token)
-            ->put("https://mybusiness.googleapis.com/v4/{$connection->external_id}/reviews/{$review->external_id}/reply", [
+        return Http::withToken($this->token($connection))
+            ->put('https://mybusiness.googleapis.com/v4/'.$this->v4Path($connection)."/reviews/{$review->external_id}/reply", [
                 'comment' => $content,
             ])->successful();
     }
@@ -95,12 +111,13 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
             return parent::publishPost($connection, $post, $branch);
         }
 
-        $response = Http::withToken($connection->access_token)
-            ->post("https://mybusiness.googleapis.com/v4/{$connection->external_id}/localPosts", [
+        $response = Http::withToken($this->token($connection))
+            ->post('https://mybusiness.googleapis.com/v4/'.$this->v4Path($connection).'/localPosts', array_filter([
                 'summary' => $post->content,
                 'languageCode' => app()->getLocale(),
+                'topicType' => 'STANDARD',
                 'callToAction' => $post->cta_url ? ['actionType' => 'LEARN_MORE', 'url' => $post->cta_url] : null,
-            ]);
+            ]));
 
         return [
             'status' => $response->successful() ? 'published' : 'failed',
@@ -115,7 +132,7 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
             return [];
         }
 
-        $response = Http::withToken($connection->access_token)
+        $response = Http::withToken($this->token($connection))
             ->get("https://businessprofileperformance.googleapis.com/v1/{$connection->external_id}:fetchMultiDailyMetricsTimeSeries", [
                 'dailyMetrics' => ['CALL_CLICKS', 'BUSINESS_DIRECTION_REQUESTS', 'WEBSITE_CLICKS'],
             ]);
@@ -135,12 +152,19 @@ class GoogleBusinessProfileAdapter extends BaseAdapter
                 $periods[] = [
                     'openDay' => strtoupper($day),
                     'closeDay' => strtoupper($day),
-                    'openTime' => $range['open'],
-                    'closeTime' => $range['close'],
+                    'openTime' => $this->toTimeOfDay($range['open']),
+                    'closeTime' => $this->toTimeOfDay($range['close']),
                 ];
             }
         }
 
         return ['periods' => $periods];
+    }
+
+    private function toTimeOfDay(string $time): array
+    {
+        [$hours, $minutes] = array_pad(explode(':', $time), 2, 0);
+
+        return ['hours' => (int) $hours, 'minutes' => (int) $minutes];
     }
 }

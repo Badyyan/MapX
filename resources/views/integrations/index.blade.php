@@ -3,6 +3,13 @@
 @section('title', __('Integrations'))
 
 @section('content')
+    @if($mockMode)
+        <div class="card flex items-center gap-3 px-4 py-3 !ring-amber-600/20 bg-amber-50/60 text-sm text-amber-800" role="status">
+            <x-icon name="info" class="size-4.5 shrink-0 text-amber-600" />
+            {{ __('Demo mode is on (MAPX_INTEGRATIONS_MOCK=true): connections are simulated so you can explore the product. Set it to false and configure API credentials to connect real accounts.') }}
+        </div>
+    @endif
+
     <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-slate-500 max-w-2xl">{{ __('Connect your locations to maps, social networks and ride services. Connected platforms are kept in sync automatically.') }}</p>
         @if(auth()->user()->hasPermission('integrations.manage'))
@@ -13,65 +20,125 @@
         @endif
     </div>
 
-    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 animate-stagger">
-        @foreach($platforms as $key => $platform)
-            @php($platformConnections = $connections->get($key, collect()))
-            @php($syncedCount = $platformConnections->where('sync_status', 'synced')->count())
-            <div class="card card-hover p-5 flex flex-col">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-center gap-3.5 min-w-0">
-                        <span class="grid place-items-center size-11 shrink-0 rounded-xl text-white font-bold text-lg shadow-sm" style="background: {{ $platform['color'] }}">
-                            {{ strtoupper(substr($platform['name'], 0, 1)) }}
-                        </span>
-                        <div class="min-w-0">
-                            <p class="font-semibold text-slate-900 truncate">{{ $platform['name'] }}</p>
-                            <p class="text-xs text-slate-400 truncate">{{ implode(' · ', array_map(fn ($c) => __(ucfirst($c)), $platform['capabilities'])) }}</p>
-                        </div>
-                    </div>
-                    @if($platformConnections->isNotEmpty())
-                        <span class="badge badge-success shrink-0"><x-icon name="check" class="size-3" /> {{ __('Connected') }}</span>
-                    @endif
-                </div>
-
-                <div class="mt-5 flex-1">
-                    @if($platformConnections->isNotEmpty())
-                        <p class="text-sm text-slate-600">{{ __(':synced of :total branches synchronized', ['synced' => $syncedCount, 'total' => $platformConnections->count()]) }}</p>
-                        <div class="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ $platformConnections->count() ? $syncedCount / $platformConnections->count() * 100 : 0 }}%"></div>
-                        </div>
-                    @else
-                        <p class="text-sm text-slate-400">{{ __('Not connected yet.') }}</p>
-                    @endif
-                </div>
-
-                @if(auth()->user()->hasPermission('integrations.manage'))
-                    <div class="mt-5 flex items-center gap-2">
-                        @if($platformConnections->isEmpty())
-                            <form method="POST" action="{{ route('integrations.connect') }}" class="flex-1">
-                                @csrf
-                                <input type="hidden" name="platform" value="{{ $key }}">
-                                <button class="btn btn-primary btn-sm w-full !py-2"><x-icon name="plug" class="size-3.5" /> {{ __('Connect all branches') }}</button>
-                            </form>
-                        @else
-                            <form method="POST" action="{{ route('integrations.connect') }}">
-                                @csrf
-                                <input type="hidden" name="platform" value="{{ $key }}">
-                                <button class="btn btn-secondary btn-sm"><x-icon name="refresh-cw" class="size-3" /> {{ __('Re-connect') }}</button>
-                            </form>
-                            <form method="POST" action="{{ route('integrations.disconnect', $platformConnections->first()) }}">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-danger btn-sm">{{ __('Disconnect') }}</button>
-                            </form>
+    {{-- Google Business Profile — the primary integration --}}
+    <div class="card p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+                <span class="grid place-items-center size-12 shrink-0 rounded-2xl text-white font-bold text-xl shadow-sm" style="background: #4285F4">G</span>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="font-semibold text-slate-900">Google Business Profile</p>
+                        @if($googleConnection)
+                            <span class="badge badge-success"><x-icon name="check" class="size-3" /> {{ __('Connected') }}</span>
+                        @elseif(! $googleConfigured && ! $mockMode)
+                            <span class="badge badge-warning">{{ __('Setup required') }}</span>
                         @endif
                     </div>
-                @endif
+                    <p class="text-sm text-slate-500 mt-0.5">
+                        @if($googleConnection)
+                            {{ $googleConnection->meta['google_email'] ?? '' }}
+                            · {{ __('Import your existing locations, sync data, reply to reviews and publish posts.') }}
+                        @else
+                            {{ __('Sign in with Google to pull in every location you already manage — no manual entry.') }}
+                        @endif
+                    </p>
+                </div>
             </div>
-        @endforeach
+
+            @if(auth()->user()->hasPermission('integrations.manage'))
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($googleConnection)
+                        <a href="{{ route('integrations.google.import') }}" class="btn btn-primary">
+                            <x-icon name="download" class="size-4" /> {{ __('Import locations') }}
+                        </a>
+                        <form method="POST" action="{{ route('integrations.google.disconnect') }}" onsubmit="return confirm('{{ __('Disconnect Google? Imported branches stay, but syncing stops.') }}')">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-danger">{{ __('Disconnect') }}</button>
+                        </form>
+                    @elseif($googleConfigured)
+                        <a href="{{ route('integrations.google.redirect') }}" class="btn btn-primary">
+                            <x-icon name="plug" class="size-4" /> {{ __('Connect with Google') }}
+                        </a>
+                    @elseif($mockMode)
+                        <form method="POST" action="{{ route('integrations.connect') }}">
+                            @csrf
+                            <input type="hidden" name="platform" value="google">
+                            <button class="btn btn-secondary"><x-icon name="plug" class="size-4" /> {{ __('Connect (demo)') }}</button>
+                        </form>
+                    @else
+                        <span class="text-xs text-slate-400 max-w-52">{{ __('Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET — see INTEGRATIONS.md') }}</span>
+                    @endif
+                </div>
+            @endif
+        </div>
     </div>
 
-    {{-- Connection detail table --}}
+    {{-- Meta: Facebook Pages + Instagram --}}
+    <div class="card p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+                <span class="grid place-items-center size-12 shrink-0 rounded-2xl text-white font-bold text-xl shadow-sm" style="background: #1877F2">f</span>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="font-semibold text-slate-900">Facebook Pages & Instagram</p>
+                        @if($metaConnection)
+                            <span class="badge badge-success"><x-icon name="check" class="size-3" /> {{ __('Connected') }}</span>
+                        @elseif(! $metaConfigured && ! $mockMode)
+                            <span class="badge badge-warning">{{ __('Setup required') }}</span>
+                        @endif
+                    </div>
+                    <p class="text-sm text-slate-500 mt-0.5">{{ __('Publish posts to your pages and Instagram business accounts.') }}</p>
+                </div>
+            </div>
+
+            @if(auth()->user()->hasPermission('integrations.manage'))
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($metaConnection)
+                        <a href="{{ route('integrations.meta.pages') }}" class="btn btn-primary">
+                            <x-icon name="link" class="size-4" /> {{ __('Map pages to branches') }}
+                        </a>
+                    @elseif($metaConfigured)
+                        <a href="{{ route('integrations.meta.redirect') }}" class="btn btn-primary">
+                            <x-icon name="plug" class="size-4" /> {{ __('Connect with Facebook') }}
+                        </a>
+                    @elseif($mockMode)
+                        <form method="POST" action="{{ route('integrations.connect') }}">
+                            @csrf
+                            <input type="hidden" name="platform" value="facebook">
+                            <button class="btn btn-secondary"><x-icon name="plug" class="size-4" /> {{ __('Connect (demo)') }}</button>
+                        </form>
+                    @else
+                        <span class="text-xs text-slate-400 max-w-52">{{ __('Add META_APP_ID and META_APP_SECRET — see INTEGRATIONS.md') }}</span>
+                    @endif
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Automatic deep-link platforms --}}
+    <div class="card p-6">
+        <div class="flex items-center gap-2 mb-1.5">
+            <h2 class="section-title">{{ __('Automatic platforms') }}</h2>
+            <span class="badge badge-info">{{ __('No connection needed') }}</span>
+        </div>
+        <p class="text-sm text-slate-500 mb-5">{{ __('These services have no listing API — MapX generates ready-to-use deep links for every branch from its coordinates, automatically.') }}</p>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            @foreach(['waze' => 'Waze', 'snap' => 'Snap Map', 'uber' => 'Uber', 'careem' => 'Careem', 'bolt' => 'Bolt'] as $key => $name)
+                <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                    <span class="grid place-items-center size-9 shrink-0 rounded-lg text-white font-bold shadow-xs" style="background: {{ config("mapx.platforms.$key.color") }}">{{ strtoupper(substr($name, 0, 1)) }}</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-800 truncate">{{ $name }}</p>
+                        <p class="text-xs text-emerald-600 flex items-center gap-1"><x-icon name="check" class="size-3" /> {{ __('Active') }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Per-branch connection table --}}
     @if($connections->isNotEmpty())
         <div class="table-wrap">
+            <div class="px-6 py-4 border-b border-slate-100 section-title">{{ __('Connected branches') }}</div>
             <div class="overflow-x-auto">
                 <table class="table-base">
                     <thead>

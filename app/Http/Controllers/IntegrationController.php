@@ -6,25 +6,40 @@ use App\Jobs\SyncPlatformConnection;
 use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\PlatformConnection;
+use App\Services\Google\GoogleOAuthService;
+use App\Services\Meta\MetaOAuthService;
 use Illuminate\Http\Request;
 
 class IntegrationController extends Controller
 {
-    public function index()
+    /** Platforms whose real connection happens through OAuth, not the generic connect. */
+    private const OAUTH_PLATFORMS = ['google', 'facebook', 'instagram'];
+
+    /** Platforms that need no connection at all — deep links are generated from branch data. */
+    private const AUTOMATIC_PLATFORMS = ['waze', 'uber', 'careem', 'bolt', 'snap'];
+
+    public function index(GoogleOAuthService $google, MetaOAuthService $meta)
     {
-        $connections = PlatformConnection::with('branch')->get()->groupBy('platform');
+        $connections = PlatformConnection::with('branch')->whereNotNull('branch_id')->get()->groupBy('platform');
 
         return view('integrations.index', [
             'platforms' => config('mapx.platforms'),
             'connections' => $connections,
             'branches' => Branch::orderBy('name')->get(),
+            'mockMode' => (bool) config('mapx.integrations.mock'),
+            'oauthPlatforms' => self::OAUTH_PLATFORMS,
+            'automaticPlatforms' => self::AUTOMATIC_PLATFORMS,
+            'googleConfigured' => $google->isConfigured(),
+            'googleConnection' => $google->companyConnection(auth()->user()->company_id),
+            'metaConfigured' => $meta->isConfigured(),
+            'metaConnection' => $meta->companyConnection(auth()->user()->company_id),
         ]);
     }
 
     /**
-     * Connect a platform for one branch or all branches. In real mode this
-     * is where the OAuth redirect starts; in mock mode the connection is
-     * established immediately so the full flow can be exercised.
+     * Generic connect — used for deep-link platforms always, and for OAuth
+     * platforms only in mock/demo mode. Real Google/Meta connections go
+     * through their OAuth controllers.
      */
     public function connect(Request $request)
     {
@@ -34,6 +49,11 @@ class IntegrationController extends Controller
         ]);
 
         abort_unless(array_key_exists($data['platform'], config('mapx.platforms')), 404);
+
+        if (! config('mapx.integrations.mock') && in_array($data['platform'], self::OAUTH_PLATFORMS, true)) {
+            return redirect()->route('integrations.index')
+                ->with('error', __('This platform connects through its official sign-in flow. Use the Connect button on its card.'));
+        }
 
         $branchIds = ($data['branch_id'] ?? null)
             ? [$data['branch_id']]
@@ -74,6 +94,7 @@ class IntegrationController extends Controller
     public function syncAll()
     {
         PlatformConnection::where('status', 'connected')
+            ->whereNotNull('branch_id')
             ->each(fn ($connection) => SyncPlatformConnection::dispatch($connection));
 
         return back()->with('success', __('Synchronization queued for all connections.'));
