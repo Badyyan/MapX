@@ -12,6 +12,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind Cloudflare + a load balancer: trust forwarded headers so
+        // request()->ip() (used in audit logs), HTTPS detection and secure
+        // cookies reflect the real client, not the proxy. Lock the origin to
+        // Cloudflare's IP ranges so only the CDN can reach it.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
         ]);
