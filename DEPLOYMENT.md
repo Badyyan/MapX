@@ -88,14 +88,40 @@ AWS_USE_PATH_STYLE_ENDPOINT=true
 MAPX_INTEGRATIONS_MOCK=false   # true keeps everything working without API keys
 MAPX_AI_PROVIDER=openai
 MAPX_AI_API_KEY=...
-MAPX_BILLING_GATEWAY=hyperpay  # or stripe
+MAPX_BILLING_GATEWAY=auto      # auto|manual|moyasar|stripe
 
 # Real integration credentials (optional — mock mode works without them)
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 META_APP_ID=...
 META_APP_SECRET=...
+
+# Payments — Moyasar (mada/Apple Pay) is the driver for Saudi entities
+MOYASAR_PUBLISHABLE_KEY=pk_live_...
+MOYASAR_SECRET_KEY=sk_live_...
+MOYASAR_WEBHOOK_SECRET=...
+MOYASAR_METHODS=creditcard,applepay,stcpay
 ```
+
+### Payment gateway notes
+
+- **`/webhooks/moyasar` and `/webhooks/stripe` must reach the origin.** If you
+  put Cloudflare in front, exempt both from Bot Fight Mode and rate limiting —
+  a blocked webhook means a customer pays and never gets activated. MapX
+  already trusts the Cloudflare proxy headers.
+- **The scheduler is not optional with Moyasar.** Unlike Stripe, Moyasar has no
+  recurring subscriptions: MapX charges renewals itself from an hourly
+  scheduled sweep. Without `schedule:run` every minute *and* a queue worker (or
+  `QUEUE_CONNECTION=sync`), nothing renews and every subscription silently
+  lapses at the end of its period.
+- **Apple Pay needs `/.well-known/` served by the origin.** The
+  `apple-developer-merchantid-domain-association` file has no extension; make
+  sure neither the CDN nor a redirect rule swallows the path. Leave `applepay`
+  out of `MOYASAR_METHODS` until the domain is verified.
+- **Set `MOYASAR_WEBHOOK_SECRET` before going live.** The Moyasar webhook fails
+  closed: with no secret configured it returns 401 outside the test suite.
+  (The Stripe webhook still fails open when `STRIPE_WEBHOOK_SECRET` is unset —
+  set it.)
 
 The `public` disk isn't used in production — `FILESYSTEM_DISK=s3` sends all
 uploads to R2. Public URLs come from `AWS_URL` (set an R2 public bucket domain).

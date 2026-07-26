@@ -27,6 +27,7 @@ Arabic (full RTL)**.
 | Local rank tracker (FR-26) | `app/Services/RankTracker.php`, `RankTrackerController` |
 | RBAC: custom roles + predefined permission catalog (FR-2/3) | `config/mapx.php`, `Role` model, `perm:` middleware |
 | Billing: 99 SAR/branch/mo, 20% yearly discount, 7-day trial, feature lock (FR-28..31) | `app/Services/BillingService.php`, `subscription` middleware |
+| Payments: mada/Apple Pay (Moyasar) + Stripe, behind one driver contract | `app/Services/Billing/*`, `BillingController`, `*WebhookController` |
 | Verification assistance (FR-32..34) | `VerificationController` |
 | Audit logs | `AuditLog::record()` |
 | EN/AR + RTL | `lang/ar.json`, `SetLocale` middleware, logical CSS properties |
@@ -84,8 +85,10 @@ To go live:
    OpenAI-compatible endpoint works via `MAPX_AI_BASE_URL`).
 4. **Rank tracking** — plug a SERP provider (DataForSEO, SerpApi, …) into
    `RankTracker::fetchPosition()`.
-5. **Billing** — `MAPX_BILLING_GATEWAY=stripe|hyperpay`; wire the gateway's
-   webhook to `BillingService::markPaid()` / `markFailed()`.
+5. **Billing** — `MAPX_BILLING_GATEWAY=auto|manual|moyasar|stripe`. Moyasar
+   (mada/Apple Pay) is the driver for Saudi merchants; Stripe needs a
+   non-KSA entity. Set the driver's keys and webhook URL and the rest is
+   automatic — see INTEGRATIONS.md.
 6. Set `MAPX_INTEGRATIONS_MOCK=false`.
 
 Waze, Snap Map, Uber, Careem and Bolt need no credentials — per the BRD they
@@ -108,10 +111,20 @@ edits via API).
 - **Platform adapters** — each integration implements `PlatformAdapter`
   (sync, reviews, replies, posts, insights). Mock behaviour lives in
   `BaseAdapter`; real HTTP calls live in each concrete adapter.
+- **Payment drivers** — the same shape for billing: each gateway implements
+  `PaymentGateway` (`key`, `isConfigured`, `checkoutUrl`, `confirm`, `cancel`)
+  and inherits the shared, tenancy-correct state machine from `BaseGateway`
+  (idempotent invoice recording, period extension, past-due/cancel). Webhook
+  payloads stay inside the driver that understands them.
+  `PaymentGatewayManager` resolves `MAPX_BILLING_GATEWAY`, degrading to the
+  sandbox `ManualGateway` when the named driver has no credentials. Moyasar
+  additionally drives its own renewals — it has no subscription primitive, so
+  MapX charges the saved card token from the scheduler.
 - **Queues & scheduler** — syncs, review ingestion, auto-replies, post
   publishing and rank snapshots all run as queued jobs. `routes/console.php`
   schedules: daily review fetch (03:00), scheduled-post release (every
-  minute), daily rank snapshots (04:00), hourly billing lifecycle.
+  minute), daily rank snapshots (04:00), hourly billing lifecycle and hourly
+  Moyasar renewal sweep.
 
 ## Testing
 
@@ -119,9 +132,11 @@ edits via API).
 php artisan test
 ```
 
-19 feature tests cover registration/provisioning, branch CRUD + trial limits +
+53 feature tests cover registration/provisioning, branch CRUD + trial limits +
 tenant isolation, RBAC enforcement, the QR threshold flow, the auto-reply
-engine and billing math/locking.
+engine, billing math/locking, gateway driver resolution, and both payment
+gateways end to end (Stripe webhooks; Moyasar checkout, amount verification,
+webhooks and renewal dunning — all via `Http::fake`, no account needed).
 
 ## Deployment (SRS §9)
 

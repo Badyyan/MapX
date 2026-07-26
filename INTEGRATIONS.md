@@ -1,7 +1,7 @@
 # Connecting MapX to real services
 
 Out of the box MapX runs in **demo mode** (`MAPX_INTEGRATIONS_MOCK=true`) and
-**sandbox billing** (no Stripe keys): every feature works, but connections are
+**sandbox billing** (no gateway keys): every feature works, but connections are
 simulated and subscriptions activate without charging. This guide is the
 checklist for going real. Each section ends with the exact env vars to set on
 your host (Laravel Cloud → Settings → Custom environment variables).
@@ -79,7 +79,72 @@ branch (linked Instagram business accounts connect automatically).
 
 ---
 
-## 3. Stripe — real subscription payments
+## 3. Moyasar — mada, Apple Pay & cards (the Saudi gateway)
+
+**This is the gateway to set up if you bill Saudi merchants.** Stripe does not
+onboard KSA-based merchant entities; Moyasar is licensed by SAMA and supports
+mada, Apple Pay, Visa/Mastercard and STC Pay.
+
+With Moyasar keys set, Subscribe opens a **MapX-branded checkout page**
+(`/billing/checkout`) hosting Moyasar's embedded form — card details are typed
+into Moyasar's own fields and never reach MapX servers.
+
+1. Create an account at [moyasar.com](https://moyasar.com) and complete
+   merchant onboarding (CR + bank account).
+2. Dashboard → API keys → copy the **publishable** (`pk_test_…`) and **secret**
+   (`sk_test_…`) keys. Start in test mode; the test card is `4111 1111 1111 1111`.
+3. Dashboard → Webhooks → add:
+   ```
+   https://YOUR-DOMAIN/webhooks/moyasar
+   ```
+   Enable `payment_paid` and `payment_failed`, and set a **secret token** —
+   MapX rejects webhooks whose token doesn't match (401), and re-reads every
+   payment from the API before changing anything.
+4. Swap to `pk_live_…` / `sk_live_…` once you've completed a test payment.
+
+```dotenv
+MAPX_BILLING_GATEWAY=moyasar   # or leave as `auto`
+MOYASAR_PUBLISHABLE_KEY=pk_test_xxx
+MOYASAR_SECRET_KEY=sk_test_xxx
+MOYASAR_WEBHOOK_SECRET=your-dashboard-secret-token
+MOYASAR_METHODS=creditcard,applepay,stcpay
+```
+
+### Apple Pay — extra steps (do these last)
+
+Apple Pay only appears in Safari on Apple devices, and only after the domain
+is verified. Until then, leave `applepay` out of `MOYASAR_METHODS` so the
+button never renders in a broken state.
+
+1. Download the domain-association file from the Moyasar dashboard and serve
+   it, **with no file extension**, at:
+   ```
+   https://YOUR-DOMAIN/.well-known/apple-developer-merchantid-domain-association
+   ```
+   (place it in `public/.well-known/`; make sure your CDN/WAF doesn't block
+   `/.well-known/`).
+2. Register and validate the domain in the Moyasar dashboard.
+3. Add `applepay` to `MOYASAR_METHODS` and redeploy.
+4. Test on a real iPhone or a Mac with Touch ID — it cannot be verified in CI
+   or in a normal desktop browser.
+
+### Renewals are driven by MapX, not Moyasar
+
+Moyasar has no subscription primitive. MapX saves a card token at the first
+payment and charges renewals itself from the scheduler, re-pricing on the
+**current** branch count each period. That means the scheduler and a queue
+worker are **mandatory** in production (see §6) — without `schedule:run`,
+subscriptions simply never renew. A declined card is retried up to
+`MAPX_RENEWAL_MAX_ATTEMPTS` (3) every `MAPX_RENEWAL_RETRY_HOURS` (24) before
+the account is marked past-due and locked, which keeps the whole dunning
+ladder inside the existing 3-day grace window.
+
+Refunds issued in the Moyasar dashboard are recorded in the audit log but do
+not currently reverse a subscription — cancel it in MapX as well.
+
+---
+
+## 4. Stripe — real subscription payments
 
 With Stripe keys set, the Subscribe buttons send customers to **Stripe's
 hosted checkout** (card entry, 3-D Secure verification). Webhooks keep local
@@ -105,14 +170,16 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 
 > **Saudi Arabia note:** Stripe doesn't onboard KSA-based merchant entities
-> directly. Options: a Stripe-supported entity (e.g. UAE/US), or a local
-> gateway — Moyasar, HyperPay or Tap all support mada/Apple Pay. The billing
-> layer is gateway-abstracted (`app/Services/Billing/`), so a Moyasar driver
-> can be added behind the same subscribe/webhook flow without touching the UI.
+> directly, so use it only with a Stripe-supported entity (e.g. UAE/US).
+> For a Saudi entity, use **Moyasar** (§3) — it ships as a first-class driver.
+> The billing layer is genuinely gateway-abstracted: `PaymentGateway` +
+> `BaseGateway` + `PaymentGatewayManager` in `app/Services/Billing/`, selected
+> by `MAPX_BILLING_GATEWAY`. Adding HyperPay or Tap means one new class and
+> one line in `config/mapx.php`'s `billing.drivers` map.
 
 ---
 
-## 4. AI (review replies, post drafts)
+## 5. AI (review replies, post drafts)
 
 Works offline by default with a deterministic generator. For production
 quality set:
@@ -125,7 +192,7 @@ MAPX_AI_MODEL=gpt-4o-mini
 
 ---
 
-## 5. Background jobs on Laravel Cloud
+## 6. Background jobs on Laravel Cloud
 
 Syncs, review ingestion, auto-replies and post publishing run on the queue.
 Until you add a dedicated worker, set:
@@ -143,7 +210,10 @@ gets stuck "Pending"). When traffic grows, add a Laravel Cloud worker running
 ## Rollout order (recommended)
 
 1. `QUEUE_CONNECTION=sync` → redeploy (fixes stuck "Pending" syncs today).
-2. Stripe **test keys** → verify checkout with the test card → swap to live keys.
+2. **Moyasar test keys** → complete a test payment → swap to live keys. This is
+   the one that lets you actually charge Saudi merchants; do it first.
 3. Google Cloud project + API access application (start now; approval takes days).
 4. Meta app + App Review (also takes days; test in Development Mode meanwhile).
 5. Set `MAPX_INTEGRATIONS_MOCK=false` once Google credentials are live.
+6. Apple Pay domain verification, once everything else is live.
+7. Stripe only if you bill through a non-KSA entity.

@@ -1,6 +1,6 @@
 # MapX — Project Status (handoff)
 
-_Last updated: 2026-07-04. Read this first when picking up the project in a
+_Last updated: 2026-07-26. Read this first when picking up the project in a
 new session._
 
 ## What MapX is
@@ -30,7 +30,17 @@ no PR opened — owner hasn't asked to merge).
     (`app/Services/Billing/StripeGateway.php`, `/webhooks/stripe`).
   - Honest UI states: demo-mode banner, "Setup required", automatic
     deep-link platforms (Waze/Uber/Careem/Bolt/Snap need no connection).
-- Tests: 32 passing (101 assertions). `php artisan test`.
+- **Payments abstraction + Moyasar (latest work):** the billing layer is now
+  genuinely gateway-abstracted — `PaymentGateway` contract, `BaseGateway`
+  (idempotent invoices, tenancy-safe writes, period/past-due transitions),
+  `PaymentGatewayManager` resolving `MAPX_BILLING_GATEWAY`
+  (`auto|manual|moyasar|stripe`, degrading to sandbox when keys are missing).
+  Moyasar driver ships: MapX-branded embedded checkout (`/billing/checkout`)
+  for mada/Apple Pay/STC Pay, server-side amount re-verification (the embedded
+  form's amount is client-editable), fail-closed webhook at `/webhooks/moyasar`,
+  and MapX-driven renewals from an encrypted saved card token with a 3×24 h
+  dunning ladder that fits inside the existing 3-day grace window.
+- Tests: 53 passing (165 assertions). `php artisan test`.
 
 ## Production deployment (Laravel Cloud)
 
@@ -45,9 +55,14 @@ no PR opened — owner hasn't asked to merge).
 
 1. Add `QUEUE_CONNECTION=sync` env var on Laravel Cloud (jobs currently
    have no worker → syncs stick at "Pending").
-2. Stripe account + test keys → verify checkout → live keys. KSA note:
-   Stripe doesn't onboard Saudi entities; Moyasar/HyperPay/Tap are the local
-   alternatives (gateway layer is abstracted for a drop-in driver).
+2. **Moyasar account** (this is the one that lets you actually charge Saudi
+   merchants) → test keys → complete a test payment → live keys. Set
+   `MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_SECRET_KEY`, `MOYASAR_WEBHOOK_SECRET`
+   (webhook: `https://YOUR-DOMAIN/webhooks/moyasar`, events `payment_paid` +
+   `payment_failed`). Apple Pay additionally needs the domain-association file
+   at `/.well-known/` and domain validation in the Moyasar dashboard — until
+   then drop `applepay` from `MOYASAR_METHODS`.
+   Stripe stays available but only works with a non-KSA entity.
 3. Google Cloud project + Business Profile API access application
    (approval takes days/weeks) → GOOGLE_CLIENT_ID/SECRET.
 4. Meta developer app + App Review → META_APP_ID/SECRET.
@@ -55,8 +70,21 @@ no PR opened — owner hasn't asked to merge).
 
 ## Possible next work
 
-- Moyasar (mada/Apple Pay) gateway driver — offered, not yet requested.
-- Open a PR / merge strategy once owner is ready.
+- **Verify the Moyasar seams against live docs.** `docs.moyasar.com` is
+  unreachable from this environment (proxy 403), so three details were built
+  from official-doc search results + third-party SDKs and should be confirmed
+  before taking live payments: (a) the saved-card token field on the payment
+  response — `MoyasarGateway::savedCardToken()` accepts both spellings it
+  found, and renewals do nothing if neither is present; (b) the embedded
+  form's save-card option name (`credit_card.save_card` in
+  `billing/checkout.blade.php`); (c) whether merchant-initiated token charges
+  can skip 3-D Secure — if they can't, unattended renewals aren't possible and
+  the flow has to email the customer a confirmation link instead.
+- Pin/refresh the `moyasar-payment-form` CDN version (currently 2.2.10).
+- Refunds from the Moyasar dashboard are audit-logged but don't reverse a
+  subscription.
+- Open a PR / merge strategy once owner is ready (there is still no default
+  branch in the repo).
 - Cloudflare in front (DNS/CDN/WAF + R2 uploads) per DEPLOYMENT.md.
 
 ## Key docs
