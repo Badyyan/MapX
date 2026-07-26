@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ChargeSubscriptionRenewal;
 use App\Jobs\FetchPlatformReviews;
 use App\Jobs\PublishPost;
 use App\Jobs\TrackLocalRanks;
@@ -35,6 +36,24 @@ Schedule::call(function () {
     Company::query()->pluck('id')
         ->each(fn ($id) => TrackLocalRanks::dispatch($id));
 })->dailyAt('04:00')->name('track-local-ranks')->onOneServer();
+
+// FR-28: Moyasar has no recurring subscriptions, so MapX charges renewals
+// itself from the saved card token. Runs before the lifecycle sweep below has
+// a chance to lock anyone: it fires the day the period ends, and that sweep
+// only reacts 3 days later.
+Schedule::call(function () {
+    $retryHours = (int) config('mapx.billing.renewal.retry_hours', 24);
+
+    \App\Models\Subscription::where('gateway', 'moyasar')
+        ->whereIn('status', ['active', 'past_due'])
+        ->whereNull('canceled_at')
+        ->whereNotNull('payment_token')
+        ->where('current_period_end', '<=', now())
+        ->where('renewal_attempts', '<', (int) config('mapx.billing.renewal.max_attempts', 3))
+        ->where(fn ($q) => $q->whereNull('last_renewal_attempt_at')
+            ->orWhere('last_renewal_attempt_at', '<', now()->subHours($retryHours)))
+        ->each(fn ($subscription) => ChargeSubscriptionRenewal::dispatch($subscription->id));
+})->hourly()->name('charge-subscription-renewals')->onOneServer();
 
 // FR-31: expire trials and lock past-due subscriptions.
 Schedule::call(function () {

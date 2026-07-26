@@ -119,7 +119,25 @@ return [
         'currency' => 'SAR',
         'trial_days' => 7,
         'trial_branch_limit' => 3,
-        'gateway' => env('MAPX_BILLING_GATEWAY', 'manual'), // manual|stripe|hyperpay
+
+        // auto  = use the first driver below that has credentials, else manual
+        // manual = sandbox billing, nothing is charged
+        // stripe|moyasar = force that driver (falls back to manual if unconfigured)
+        'gateway' => env('MAPX_BILLING_GATEWAY', 'auto'),
+
+        'drivers' => [
+            'manual' => \App\Services\Billing\ManualGateway::class,
+            'stripe' => \App\Services\Billing\StripeGateway::class,
+            'moyasar' => \App\Services\Billing\MoyasarGateway::class,
+        ],
+
+        // Dunning for gateways MapX renews itself (Moyasar). 3 attempts at
+        // 24 h fits inside the 3-day grace window that the billing-lifecycle
+        // schedule uses before it locks an account.
+        'renewal' => [
+            'max_attempts' => (int) env('MAPX_RENEWAL_MAX_ATTEMPTS', 3),
+            'retry_hours' => (int) env('MAPX_RENEWAL_RETRY_HOURS', 24),
+        ],
     ],
 
     /*

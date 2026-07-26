@@ -31,6 +31,7 @@ Route::prefix('f')->name('feedback.')->group(function () {
 
 /* Payment gateway webhooks (signature-verified, no session) */
 Route::post('/webhooks/stripe', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
+Route::post('/webhooks/moyasar', [\App\Http\Controllers\MoyasarWebhookController::class, 'handle'])->name('webhooks.moyasar');
 
 /* Guest auth */
 Route::middleware('guest')->group(function () {
@@ -48,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('perm:billing.manage')->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
         Route::post('/billing/subscribe', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+        Route::get('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
         Route::get('/billing/success', [BillingController::class, 'success'])->name('billing.success');
         Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
     });

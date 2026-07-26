@@ -2,11 +2,10 @@
 
 namespace App\Services\Billing;
 
-use App\Models\Branch;
 use App\Models\Company;
-use App\Models\Invoice;
 use App\Models\Subscription;
-use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 
 /**
@@ -16,8 +15,16 @@ use Stripe\StripeClient;
  * -> webhook `checkout.session.completed` activates the local subscription
  * -> `invoice.paid` records renewals -> `invoice.payment_failed` marks
  * past_due (feature lock) -> `customer.subscription.deleted` cancels.
+ *
+ * Stripe owns the recurring schedule, so there is no local renewal job here
+ * (unlike MoyasarGateway, which has to drive renewals itself).
+ *
+ * The recordInvoice()/markPastDue()/markCanceled() methods take raw
+ * Stripe-shaped arrays on purpose: they are the mapping layer between
+ * Stripe's payload and the normalized transitions in BaseGateway, and are
+ * called only from StripeWebhookController.
  */
-class StripeGateway
+class StripeGateway extends BaseGateway
 {
     private ?StripeClient $stripe = null;
 
@@ -27,7 +34,12 @@ class StripeGateway
         return $this->stripe ??= new StripeClient(config('services.stripe.secret'));
     }
 
-    public static function isConfigured(): bool
+    public function key(): string
+    {
+        return 'stripe';
+    }
+
+    public function isConfigured(): bool
     {
         return (bool) config('services.stripe.secret');
     }
@@ -35,13 +47,14 @@ class StripeGateway
     /** Create a hosted Checkout session and return its redirect URL. */
     public function checkoutUrl(Company $company, string $plan): string
     {
-        $branchCount = max(1, Branch::withoutGlobalScope('company')->where('company_id', $company->id)->count());
+        $branchCount = $this->billing->billableBranchCount($company);
         $isYearly = $plan === 'yearly';
-        $pricePerBranch = (float) config('mapx.billing.price_per_branch');
 
-        $unitAmount = $isYearly
-            ? (int) round($pricePerBranch * 12 * (1 - config('mapx.billing.yearly_discount')) * 100)
-            : (int) round($pricePerBranch * 100);
+        // Stripe multiplies unit_amount by quantity, so the unit here is one
+        // branch for one period — not the whole-order total.
+        $unitAmount = $this->billing->minorUnits(
+            $this->billing->amountFor($plan, 1)
+        );
 
         $session = $this->stripe()->checkout->sessions->create([
             'mode' => 'subscription',
@@ -69,10 +82,14 @@ class StripeGateway
         return $session->url;
     }
 
-    /** Activate the local subscription after a completed Checkout session. */
-    public function activateFromSession(string $sessionId): ?Subscription
+    /**
+     * Activate the local subscription after a completed Checkout session.
+     * The session id arrives on the success URL and is untrusted, so the
+     * session is re-fetched from Stripe before anything is activated.
+     */
+    public function confirm(string $reference): ?Subscription
     {
-        $session = $this->stripe()->checkout->sessions->retrieve($sessionId);
+        $session = $this->stripe()->checkout->sessions->retrieve($reference);
 
         if ($session->payment_status !== 'paid' && $session->status !== 'complete') {
             return null;
@@ -88,76 +105,66 @@ class StripeGateway
 
     public function activate(int $companyId, string $plan, string $customerId, string $subscriptionId): ?Subscription
     {
-        $company = Company::find($companyId);
-
-        if (! $company) {
-            return null;
-        }
-
-        $subscription = $company->subscription ?? new Subscription(['company_id' => $company->id]);
-        $subscription->fill([
-            'company_id' => $company->id,
-            'plan' => $plan,
-            'status' => 'active',
-            'branch_limit' => null,
-            'price_per_branch' => config('mapx.billing.price_per_branch'),
-            'currency' => config('mapx.billing.currency'),
-            'current_period_start' => now(),
-            'current_period_end' => $plan === 'yearly' ? now()->addYear() : now()->addMonth(),
-            'canceled_at' => null,
-            'gateway' => 'stripe',
-            'gateway_customer_id' => $customerId,
-            'gateway_subscription_id' => $subscriptionId,
-        ])->save();
-
-        return $subscription;
+        return $this->activateSubscription($companyId, $plan, $customerId, $subscriptionId);
     }
 
     /** Record a paid Stripe invoice locally (initial + renewals). */
     public function recordInvoice(array $stripeInvoice): void
     {
-        $subscription = Subscription::where('gateway_subscription_id', $this->invoiceSubscriptionId($stripeInvoice))->first();
+        $subscription = $this->subscriptionByGatewayId($this->invoiceSubscriptionId($stripeInvoice));
 
         if (! $subscription) {
             return;
         }
 
-        if (Invoice::withoutGlobalScope('company')->where('gateway_reference', $stripeInvoice['id'])->exists()) {
+        $recorded = $this->recordPaidInvoice(
+            subscription: $subscription,
+            reference: $stripeInvoice['id'],
+            amount: ($stripeInvoice['amount_paid'] ?? 0) / 100,
+            currency: $stripeInvoice['currency'] ?? null,
+            branchCount: (int) ($stripeInvoice['lines']['data'][0]['quantity'] ?? 1),
+            number: $stripeInvoice['number'] ?? null,
+            periodStart: isset($stripeInvoice['period_start']) ? Carbon::createFromTimestamp($stripeInvoice['period_start']) : null,
+            periodEnd: isset($stripeInvoice['period_end']) ? Carbon::createFromTimestamp($stripeInvoice['period_end']) : null,
+        );
+
+        if (! $recorded) {
             return; // webhook retries must stay idempotent
         }
 
-        Invoice::withoutGlobalScope('company')->create([
-            'company_id' => $subscription->company_id,
-            'subscription_id' => $subscription->id,
-            'number' => $stripeInvoice['number'] ?? ('INV-'.now()->format('Ym').'-'.strtoupper(Str::random(6))),
-            'amount' => ($stripeInvoice['amount_paid'] ?? 0) / 100,
-            'currency' => strtoupper($stripeInvoice['currency'] ?? config('mapx.billing.currency')),
-            'branch_count' => (int) ($stripeInvoice['lines']['data'][0]['quantity'] ?? 1),
-            'period_start' => isset($stripeInvoice['period_start']) ? date('Y-m-d', $stripeInvoice['period_start']) : now()->toDateString(),
-            'period_end' => isset($stripeInvoice['period_end']) ? date('Y-m-d', $stripeInvoice['period_end']) : null,
-            'status' => 'paid',
-            'paid_at' => now(),
-            'gateway' => 'stripe',
-            'gateway_reference' => $stripeInvoice['id'],
-        ]);
-
         // A paid renewal extends the current period.
-        $subscription->update([
-            'status' => 'active',
-            'current_period_end' => $subscription->plan === 'yearly' ? now()->addYear() : now()->addMonth(),
-        ]);
+        $this->extendPeriod($subscription);
     }
 
     public function markPastDue(array $stripeInvoice): void
     {
-        Subscription::where('gateway_subscription_id', $this->invoiceSubscriptionId($stripeInvoice))
-            ->update(['status' => 'past_due']);
+        $subscription = $this->subscriptionByGatewayId($this->invoiceSubscriptionId($stripeInvoice));
+
+        $subscription && $this->markPastDueSubscription($subscription);
     }
 
     public function markCanceled(array $stripeSubscription): void
     {
-        Subscription::where('gateway_subscription_id', $stripeSubscription['id'] ?? null)
-            ->update(['status' => 'canceled', 'canceled_at' => now()]);
+        $subscription = $this->subscriptionByGatewayId($stripeSubscription['id'] ?? null);
+
+        $subscription && $this->markCanceledSubscription($subscription);
+    }
+
+    /**
+     * Cancel at Stripe too — a local-only cancel would keep charging the card.
+     * Remote failure never blocks the local cancel; the webhook reconciles.
+     */
+    public function cancel(Subscription $subscription): void
+    {
+        if ($this->isConfigured() && $subscription->gateway_subscription_id) {
+            try {
+                $this->stripe()->subscriptions->cancel($subscription->gateway_subscription_id);
+            } catch (\Throwable $e) {
+                Log::warning('Stripe subscription cancel failed: '.$e->getMessage());
+            }
+        }
+
+        parent::cancel($subscription);
     }
 
     private function invoiceSubscriptionId(array $stripeInvoice): ?string

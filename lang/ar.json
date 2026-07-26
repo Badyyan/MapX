@@ -440,11 +440,19 @@
     "Back to integrations": "العودة إلى التكاملات",
     "This platform connects through its official sign-in flow. Use the Connect button on its card.": "تتصل هذه المنصة عبر تسجيل الدخول الرسمي الخاص بها. استخدم زر الربط في بطاقتها.",
     "Unnamed location": "موقع بدون اسم",
-    "Sandbox billing: no payment gateway is configured, so subscriptions activate without charging. Add Stripe keys (see INTEGRATIONS.md) to take real payments.": "فوترة تجريبية: لا توجد بوابة دفع مهيأة، لذا تُفعّل الاشتراكات دون خصم. أضف مفاتيح Stripe (راجع INTEGRATIONS.md) لتحصيل مدفوعات حقيقية.",
     "Pay monthly — secure checkout": "ادفع شهرياً — دفع آمن",
     "Pay yearly — secure checkout": "ادفع سنوياً — دفع آمن",
     "Sandbox subscription activated (no payment gateway configured). Invoice :number recorded.": "تم تفعيل اشتراك تجريبي (لا توجد بوابة دفع). سُجلت الفاتورة :number.",
     "Payment confirmed — your :plan subscription is active.": "تم تأكيد الدفع — اشتراكك :plan نشط الآن.",
     "Payment could not be confirmed. If you were charged, it will activate automatically within a minute.": "تعذر تأكيد الدفع. إذا تم الخصم فسيُفعّل الاشتراك تلقائياً خلال دقيقة.",
-    "Connect (demo)": "ربط (تجريبي)"
+    "Connect (demo)": "ربط (تجريبي)",
+    "Sandbox billing: no payment gateway is configured, so subscriptions activate without charging. Add Moyasar (mada/Apple Pay) or Stripe keys — see INTEGRATIONS.md — to take real payments.": "فوترة تجريبية: لا توجد بوابة دفع مهيأة، لذا تُفعّل الاشتراكات دون خصم. أضف مفاتيح ميسر (مدى/Apple Pay) أو Stripe — راجع INTEGRATIONS.md — لتحصيل مدفوعات حقيقية.",
+    "Payments are live through Moyasar — mada, Apple Pay and credit cards.": "المدفوعات مفعّلة عبر ميسر — مدى وApple Pay والبطاقات الائتمانية.",
+    "Payments are live through Stripe — credit cards with 3-D Secure.": "المدفوعات مفعّلة عبر Stripe — بطاقات ائتمانية مع تحقق 3-D Secure.",
+    "Checkout": "إتمام الدفع",
+    "Back to billing": "العودة إلى الفوترة",
+    "Order summary": "ملخص الطلب",
+    "Total due today": "الإجمالي المستحق اليوم",
+    "Payment details": "تفاصيل الدفع",
+    "Payments are processed by Moyasar. Card details are entered directly into Moyasar's secure form and never reach MapX servers.": "تتم معالجة المدفوعات عبر ميسر. تُدخل بيانات البطاقة مباشرة في نموذج ميسر الآمن ولا تصل إلى خوادم MapX إطلاقاً."
 }

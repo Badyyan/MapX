@@ -9,6 +9,9 @@ class Subscription extends Model
 {
     protected $guarded = [];
 
+    /** The saved card token must never reach a response, log or audit entry. */
+    protected $hidden = ['payment_token'];
+
     protected function casts(): array
     {
         return [
@@ -16,7 +19,10 @@ class Subscription extends Model
             'current_period_start' => 'datetime',
             'current_period_end' => 'datetime',
             'canceled_at' => 'datetime',
+            'last_renewal_attempt_at' => 'datetime',
             'price_per_branch' => 'float',
+            // Encrypted at rest, like PlatformConnection's OAuth tokens.
+            'payment_token' => 'encrypted',
         ];
     }
 

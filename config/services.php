@@ -52,4 +52,22 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    /*
+     | Moyasar — the Saudi gateway (mada, Apple Pay, Visa/Mastercard, STC Pay).
+     | Stripe does not onboard KSA merchant entities, so this is the driver
+     | that actually takes money locally. Keys are pk_test_/sk_test_ in test
+     | mode and pk_live_/sk_live_ in production.
+     */
+    'moyasar' => [
+        'publishable_key' => env('MOYASAR_PUBLISHABLE_KEY'),
+        'secret_key' => env('MOYASAR_SECRET_KEY'),
+        'webhook_secret' => env('MOYASAR_WEBHOOK_SECRET'),
+        'base_url' => env('MOYASAR_BASE_URL', 'https://api.moyasar.com/v1'),
+        // Payment methods offered on the embedded form, in display order.
+        'methods' => env('MOYASAR_METHODS', 'creditcard,applepay,stcpay'),
+        // Apple Pay merchant label shown in the sheet; domain must be verified.
+        'apple_pay_label' => env('MOYASAR_APPLE_PAY_LABEL', env('APP_NAME', 'MapX')),
+        'apple_pay_country' => env('MOYASAR_APPLE_PAY_COUNTRY', 'SA'),
+    ],
+
 ];

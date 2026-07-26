@@ -122,10 +122,14 @@ class StripeBillingTest extends TestCase
 
     public function test_gateway_configured_detection(): void
     {
+        // isConfigured() is an instance method now that drivers implement the
+        // PaymentGateway contract — PHP interfaces can't declare statics.
+        $gateway = app(StripeGateway::class);
+
         config(['services.stripe.secret' => null]);
-        $this->assertFalse(StripeGateway::isConfigured());
+        $this->assertFalse($gateway->isConfigured());
 
         config(['services.stripe.secret' => 'sk_test_x']);
-        $this->assertTrue(StripeGateway::isConfigured());
+        $this->assertTrue($gateway->isConfigured());
     }
 }

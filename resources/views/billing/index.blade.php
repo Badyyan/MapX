@@ -6,7 +6,14 @@
     @unless($gatewayConfigured)
         <div class="card flex items-center gap-3 px-4 py-3 !ring-amber-600/20 bg-amber-50/60 text-sm text-amber-800" role="status">
             <x-icon name="alert-triangle" class="size-4.5 shrink-0 text-amber-600" />
-            {{ __('Sandbox billing: no payment gateway is configured, so subscriptions activate without charging. Add Stripe keys (see INTEGRATIONS.md) to take real payments.') }}
+            {{ __('Sandbox billing: no payment gateway is configured, so subscriptions activate without charging. Add Moyasar (mada/Apple Pay) or Stripe keys — see INTEGRATIONS.md — to take real payments.') }}
+        </div>
+    @else
+        <div class="card flex items-center gap-3 px-4 py-3 !ring-emerald-600/15 bg-emerald-50/60 text-sm text-emerald-800" role="status">
+            <x-icon name="shield" class="size-4.5 shrink-0 text-emerald-600" />
+            {{ $gatewayKey === 'moyasar'
+                ? __('Payments are live through Moyasar — mada, Apple Pay and credit cards.')
+                : __('Payments are live through Stripe — credit cards with 3-D Secure.') }}
         </div>
     @endunless
 

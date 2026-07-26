@@ -29,6 +29,22 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!--
+            Billing must not depend on whatever the developer has in .env:
+            real gateway keys there would otherwise route the sandbox tests
+            through a live driver, and a custom MOYASAR_BASE_URL would slip
+            past the Http::fake() patterns. Individual tests opt into a
+            gateway with config([...]) instead.
+        -->
+        <env name="MAPX_BILLING_GATEWAY" value="auto"/>
+        <env name="STRIPE_KEY" value=""/>
+        <env name="STRIPE_SECRET" value=""/>
+        <env name="STRIPE_WEBHOOK_SECRET" value=""/>
+        <env name="MOYASAR_PUBLISHABLE_KEY" value=""/>
+        <env name="MOYASAR_SECRET_KEY" value=""/>
+        <env name="MOYASAR_WEBHOOK_SECRET" value=""/>
+        <env name="MOYASAR_BASE_URL" value="https://api.moyasar.com/v1"/>
+        <env name="MOYASAR_METHODS" value="creditcard,applepay,stcpay"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

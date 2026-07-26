@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700|ibm-plex-sans-arabic:400,500,600,700&display=swap">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('head')
 </head>
 <body class="antialiased">
 <div class="min-h-screen lg:flex">
