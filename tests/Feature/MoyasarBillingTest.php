@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ChargeSubscriptionRenewal;
+use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Subscription;
@@ -201,6 +202,32 @@ class MoyasarBillingTest extends TestCase
             ->assertOk();
 
         $this->assertSame('past_due', $this->admin->company->fresh()->subscription->status);
+    }
+
+    public function test_refund_marks_the_invoice_and_leaves_an_audit_trail(): void
+    {
+        // One lookup per webhook: the payment reads back `paid`, then
+        // `refunded` after the merchant refunds it in the dashboard.
+        // (A second Http::fake() would merge rather than replace, and the
+        // first stub would keep winning — hence the sequence.)
+        Http::fake(['api.moyasar.com/*' => Http::sequence()
+            ->push($this->paidPayment())
+            ->push($this->paidPayment(['status' => 'refunded', 'refunded_amount' => 9900])),
+        ]);
+
+        $this->postJson('/webhooks/moyasar', ['type' => 'payment_paid', 'data' => ['id' => 'pay_123']])->assertOk();
+        $this->postJson('/webhooks/moyasar', ['type' => 'payment_refunded', 'data' => ['id' => 'pay_123']])->assertOk();
+
+        $this->assertSame('refunded', Invoice::withoutGlobalScope('company')->where('gateway_reference', 'pay_123')->first()->status);
+
+        $audit = AuditLog::where('action', 'billing.payment_refunded')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame($this->admin->company_id, $audit->company_id);
+        $this->assertSame(99.0, (float) $audit->meta['refunded_amount']);
+
+        // Refunding money and cutting off the account are separate decisions;
+        // the subscription is deliberately left alone.
+        $this->assertSame('active', $this->admin->company->fresh()->subscription->status);
     }
 
     public function test_renewal_charges_the_saved_token_and_extends_the_period(): void

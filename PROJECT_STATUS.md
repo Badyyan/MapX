@@ -40,7 +40,7 @@ no PR opened — owner hasn't asked to merge).
   form's amount is client-editable), fail-closed webhook at `/webhooks/moyasar`,
   and MapX-driven renewals from an encrypted saved card token with a 3×24 h
   dunning ladder that fits inside the existing 3-day grace window.
-- Tests: 53 passing (165 assertions). `php artisan test`.
+- Tests: 54 passing (174 assertions). `php artisan test`.
 
 ## Production deployment (Laravel Cloud)
 
@@ -80,9 +80,11 @@ no PR opened — owner hasn't asked to merge).
   `billing/checkout.blade.php`); (c) whether merchant-initiated token charges
   can skip 3-D Secure — if they can't, unattended renewals aren't possible and
   the flow has to email the customer a confirmation link instead.
-- Pin/refresh the `moyasar-payment-form` CDN version (currently 2.2.10).
-- Refunds from the Moyasar dashboard are audit-logged but don't reverse a
-  subscription.
+- Re-check the `moyasar-payment-form` CDN version (`MOYASAR_FORM_VERSION`,
+  currently 2.2.10) when Moyasar ships a new form.
+- Decide whether a Moyasar refund should also cancel the subscription. It
+  currently marks the invoice Refunded and audit-logs it, deliberately
+  leaving the subscription alone — that's a product call, not a bug.
 - Open a PR / merge strategy once owner is ready (there is still no default
   branch in the repo).
 - Cloudflare in front (DNS/CDN/WAF + R2 uploads) per DEPLOYMENT.md.

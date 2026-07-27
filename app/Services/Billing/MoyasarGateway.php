@@ -2,7 +2,9 @@
 
 namespace App\Services\Billing;
 
+use App\Models\AuditLog;
 use App\Models\Company;
+use App\Models\Invoice;
 use App\Models\Subscription;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\Log;
@@ -31,6 +33,9 @@ class MoyasarGateway extends BaseGateway
 
     /** Payment states that mean the money will never arrive. */
     private const FAILED_STATUSES = ['failed', 'voided', 'canceled', 'expired', 'abandoned'];
+
+    /** Money that arrived and was given back. */
+    private const REFUNDED_STATUSES = ['refunded'];
 
     public function __construct(BillingService $billing, private MoyasarClient $client)
     {
@@ -91,6 +96,12 @@ class MoyasarGateway extends BaseGateway
 
         if (! $companyId) {
             Log::warning('Moyasar payment has no company_id metadata; ignoring.', ['payment' => $payment['id'] ?? null]);
+
+            return null;
+        }
+
+        if (in_array($status, self::REFUNDED_STATUSES, true)) {
+            $this->recordRefund($companyId, $payment);
 
             return null;
         }
@@ -307,6 +318,33 @@ class MoyasarGateway extends BaseGateway
         // CI), so both observed spellings are accepted. If neither is
         // present, renewals simply can't run — see markRenewalFailed.
         return $source['token'] ?? $source['saved_card_token'] ?? null;
+    }
+
+    /**
+     * A refund issued from the Moyasar dashboard marks the invoice and leaves
+     * an audit trail, but deliberately does NOT reverse the subscription —
+     * refunding a customer and cutting off their account are separate
+     * decisions, and only a human knows which one was meant. Cancel in MapX
+     * as well if the account should stop.
+     */
+    private function recordRefund(int $companyId, array $payment): void
+    {
+        $reference = (string) ($payment['id'] ?? '');
+
+        $invoice = $reference
+            ? Invoice::withoutGlobalScope('company')->where('gateway_reference', $reference)->first()
+            : null;
+
+        if ($invoice && $invoice->status !== 'refunded') {
+            $invoice->update(['status' => 'refunded']);
+        }
+
+        AuditLog::recordSystem('billing.payment_refunded', $companyId, $invoice, [
+            'gateway' => $this->key(),
+            'payment' => $reference,
+            'refunded_amount' => ((int) ($payment['refunded_amount'] ?? $payment['amount'] ?? 0)) / 100,
+            'currency' => strtoupper((string) ($payment['currency'] ?? config('mapx.billing.currency'))),
+        ]);
     }
 
     private function failPaymentFor(int $companyId): void

@@ -454,5 +454,6 @@
     "Order summary": "ملخص الطلب",
     "Total due today": "الإجمالي المستحق اليوم",
     "Payment details": "تفاصيل الدفع",
-    "Payments are processed by Moyasar. Card details are entered directly into Moyasar's secure form and never reach MapX servers.": "تتم معالجة المدفوعات عبر ميسر. تُدخل بيانات البطاقة مباشرة في نموذج ميسر الآمن ولا تصل إلى خوادم MapX إطلاقاً."
+    "Payments are processed by Moyasar. Card details are entered directly into Moyasar's secure form and never reach MapX servers.": "تتم معالجة المدفوعات عبر ميسر. تُدخل بيانات البطاقة مباشرة في نموذج ميسر الآمن ولا تصل إلى خوادم MapX إطلاقاً.",
+    "Refunded": "مُسترجعة"
 }

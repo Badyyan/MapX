@@ -34,4 +34,22 @@ class AuditLog extends Model
             'ip' => request()?->ip(),
         ]);
     }
+
+    /**
+     * Record an entry from a context with no authenticated user — webhooks
+     * and queued jobs. The company has to be passed explicitly because
+     * there's no session to infer it from.
+     */
+    public static function recordSystem(string $action, int $companyId, ?Model $subject = null, array $meta = []): self
+    {
+        return static::create([
+            'company_id' => $companyId,
+            'user_id' => null,
+            'action' => $action,
+            'subject_type' => $subject ? $subject::class : null,
+            'subject_id' => $subject?->getKey(),
+            'meta' => $meta ?: null,
+            'ip' => request()?->ip(),
+        ]);
+    }
 }

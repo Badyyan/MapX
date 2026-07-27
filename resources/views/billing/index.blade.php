@@ -96,7 +96,12 @@
                     <div class="rounded-xl ring-1 ring-slate-900/[0.06] p-4 text-sm">
                         <div class="flex items-center justify-between">
                             <span class="font-medium text-slate-900">{{ $invoice->number }}</span>
-                            <span class="{{ $invoice->status === 'paid' ? 'badge badge-success' : ($invoice->status === 'failed' ? 'badge badge-danger' : 'badge badge-warning') }}">
+                            <span class="{{ match($invoice->status) {
+                                'paid' => 'badge badge-success',
+                                'failed' => 'badge badge-danger',
+                                'refunded' => 'badge badge-neutral',
+                                default => 'badge badge-warning',
+                            } }}">
                                 {{ __(ucfirst($invoice->status)) }}
                             </span>
                         </div>

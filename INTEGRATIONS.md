@@ -97,9 +97,9 @@ into Moyasar's own fields and never reach MapX servers.
    ```
    https://YOUR-DOMAIN/webhooks/moyasar
    ```
-   Enable `payment_paid` and `payment_failed`, and set a **secret token** —
-   MapX rejects webhooks whose token doesn't match (401), and re-reads every
-   payment from the API before changing anything.
+   Enable `payment_paid`, `payment_failed` and `payment_refunded`, then set a
+   **secret token**. MapX rejects webhooks whose token doesn't match (401),
+   and re-reads every payment from the API before changing anything.
 4. Swap to `pk_live_…` / `sk_live_…` once you've completed a test payment.
 
 ```dotenv
@@ -139,8 +139,11 @@ subscriptions simply never renew. A declined card is retried up to
 the account is marked past-due and locked, which keeps the whole dunning
 ladder inside the existing 3-day grace window.
 
-Refunds issued in the Moyasar dashboard are recorded in the audit log but do
-not currently reverse a subscription — cancel it in MapX as well.
+Refunds issued in the Moyasar dashboard mark the matching invoice as
+**Refunded** and leave a `billing.payment_refunded` entry in the audit log,
+but deliberately do **not** reverse the subscription — refunding a customer
+and cutting off their account are separate decisions. Cancel in MapX too if
+the account should stop.
 
 ---
 

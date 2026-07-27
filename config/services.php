@@ -63,6 +63,9 @@ return [
         'secret_key' => env('MOYASAR_SECRET_KEY'),
         'webhook_secret' => env('MOYASAR_WEBHOOK_SECRET'),
         'base_url' => env('MOYASAR_BASE_URL', 'https://api.moyasar.com/v1'),
+        // Version of the embedded payment form loaded from the CDN. Bump this
+        // rather than editing the Blade view when Moyasar ships a new form.
+        'form_version' => env('MOYASAR_FORM_VERSION', '2.2.10'),
         // Payment methods offered on the embedded form, in display order.
         'methods' => env('MOYASAR_METHODS', 'creditcard,applepay,stcpay'),
         // Apple Pay merchant label shown in the sheet; domain must be verified.

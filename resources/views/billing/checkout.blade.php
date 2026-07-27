@@ -3,7 +3,7 @@
 @section('title', __('Checkout'))
 
 @push('head')
-    <link rel="stylesheet" href="https://unpkg.com/moyasar-payment-form@2.2.10/dist/moyasar.css">
+    <link rel="stylesheet" href="https://unpkg.com/moyasar-payment-form@{{ config('services.moyasar.form_version') }}/dist/moyasar.css">
 @endpush
 
 @section('content')
@@ -56,7 +56,7 @@
     {{-- Loaded from Moyasar's CDN on purpose: the card fields live inside
          their script, which keeps MapX's bundle out of PCI scope and is
          required for Apple Pay to work. --}}
-    <script src="https://unpkg.com/moyasar-payment-form@2.2.10/dist/moyasar.umd.js"></script>
+    <script src="https://unpkg.com/moyasar-payment-form@{{ config('services.moyasar.form_version') }}/dist/moyasar.umd.js" crossorigin="anonymous"></script>
     <script>
         Moyasar.init({
             element: '.mysr-form',
