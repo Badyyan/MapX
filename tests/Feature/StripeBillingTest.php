@@ -120,6 +120,45 @@ class StripeBillingTest extends TestCase
         $this->assertSame(3, $invoice->branch_count);
     }
 
+    public function test_unsigned_webhooks_are_rejected_outside_the_test_suite(): void
+    {
+        // The endpoint is public and checkout.session.completed activates
+        // whatever company the metadata names, so an unverified payload would
+        // be a free subscription for anyone who can POST. The suite gets an
+        // escape hatch (see the tests above); production does not.
+        config([
+            'services.stripe.webhook_secret' => null,
+            'services.stripe.allow_unverified_webhooks' => false,
+        ]);
+
+        $this->postJson('/webhooks/stripe', [
+            'id' => 'evt_forged',
+            'object' => 'event',
+            'type' => 'checkout.session.completed',
+            'data' => ['object' => [
+                'object' => 'checkout.session',
+                'client_reference_id' => (string) $this->admin->company_id,
+                'metadata' => ['company_id' => (string) $this->admin->company_id, 'plan' => 'yearly'],
+            ]],
+        ])->assertStatus(401);
+
+        $this->assertSame('trialing', $this->admin->company->fresh()->subscription->status);
+    }
+
+    public function test_a_bad_signature_is_rejected_when_a_secret_is_configured(): void
+    {
+        config(['services.stripe.webhook_secret' => 'whsec_real']);
+
+        $this->postJson('/webhooks/stripe', [
+            'id' => 'evt_forged',
+            'object' => 'event',
+            'type' => 'checkout.session.completed',
+            'data' => ['object' => ['object' => 'checkout.session']],
+        ], ['Stripe-Signature' => 't=1,v1=deadbeef'])->assertStatus(400);
+
+        $this->assertSame('trialing', $this->admin->company->fresh()->subscription->status);
+    }
+
     public function test_gateway_configured_detection(): void
     {
         // isConfigured() is an instance method now that drivers implement the

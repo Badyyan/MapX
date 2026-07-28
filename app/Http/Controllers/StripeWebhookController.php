@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Services\Billing\StripeGateway;
 use Illuminate\Http\Request;
+use Stripe\Event;
 use Stripe\Webhook;
 
 /**
  * Stripe webhooks keep local billing state truthful even when the customer
  * never returns to the success page: activations, renewals, failures,
  * cancellations (FR-31 feature lock relies on this).
+ *
+ * The endpoint is public and unauthenticated, and `checkout.session.completed`
+ * activates whatever company its metadata names — so an unverified payload is
+ * a free subscription for anyone who can POST. It therefore FAILS CLOSED: no
+ * signing secret means 401, not "trust the body". The only exception is the
+ * test suite, which needs to post raw fixtures; see allowsUnverified().
  */
 class StripeWebhookController extends Controller
 {
@@ -17,10 +24,14 @@ class StripeWebhookController extends Controller
     {
         $secret = config('services.stripe.webhook_secret');
 
+        if (! $secret && ! $this->allowsUnverified()) {
+            return response()->json(['error' => 'Webhook signing secret is not configured'], 401);
+        }
+
         try {
             $event = $secret
                 ? Webhook::constructEvent($request->getContent(), $request->header('Stripe-Signature', ''), $secret)
-                : \Stripe\Event::constructFrom(json_decode($request->getContent(), true) ?? []);
+                : Event::constructFrom(json_decode($request->getContent(), true) ?? []);
         } catch (\Throwable $e) {
             return response()->json(['error' => 'Invalid payload or signature'], 400);
         }
@@ -41,5 +52,15 @@ class StripeWebhookController extends Controller
         };
 
         return response()->json(['received' => true]);
+    }
+
+    /**
+     * Whether an unsigned payload may be processed. Defaults to "only under
+     * PHPUnit", and is a config value rather than a bare runningUnitTests()
+     * check so a test can switch it off and prove the production path.
+     */
+    private function allowsUnverified(): bool
+    {
+        return (bool) config('services.stripe.allow_unverified_webhooks', app()->runningUnitTests());
     }
 }

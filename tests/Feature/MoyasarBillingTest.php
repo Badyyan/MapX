@@ -192,6 +192,20 @@ class MoyasarBillingTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_unsigned_webhooks_are_rejected_outside_the_test_suite(): void
+    {
+        config([
+            'services.moyasar.webhook_secret' => null,
+            'services.moyasar.allow_unverified_webhooks' => false,
+        ]);
+
+        $this->postJson('/webhooks/moyasar', ['type' => 'payment_paid', 'data' => ['id' => 'pay_123']])
+            ->assertStatus(401);
+
+        $this->assertSame('trialing', $this->admin->company->fresh()->subscription->status);
+        Http::assertNothingSent();
+    }
+
     public function test_webhook_failure_marks_a_paying_subscription_past_due(): void
     {
         $this->admin->company->subscription->update(['status' => 'active', 'gateway' => 'moyasar']);

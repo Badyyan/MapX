@@ -40,7 +40,11 @@ no PR opened — owner hasn't asked to merge).
   form's amount is client-editable), fail-closed webhook at `/webhooks/moyasar`,
   and MapX-driven renewals from an encrypted saved card token with a 3×24 h
   dunning ladder that fits inside the existing 3-day grace window.
-- Tests: 54 passing (174 assertions). `php artisan test`.
+  Both webhook endpoints now fail closed — a missing signing secret is a 401,
+  not a licence to trust the body. (The Stripe one used to accept unsigned
+  payloads, which made `checkout.session.completed` a free subscription for
+  anyone who could POST.)
+- Tests: 57 passing (181 assertions). `php artisan test`.
 
 ## Production deployment (Laravel Cloud)
 

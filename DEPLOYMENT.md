@@ -118,10 +118,13 @@ MOYASAR_METHODS=creditcard,applepay,stcpay
   `apple-developer-merchantid-domain-association` file has no extension; make
   sure neither the CDN nor a redirect rule swallows the path. Leave `applepay`
   out of `MOYASAR_METHODS` until the domain is verified.
-- **Set `MOYASAR_WEBHOOK_SECRET` before going live.** The Moyasar webhook fails
-  closed: with no secret configured it returns 401 outside the test suite.
-  (The Stripe webhook still fails open when `STRIPE_WEBHOOK_SECRET` is unset —
-  set it.)
+- **Set the webhook signing secrets before going live.** Both endpoints fail
+  closed: with no secret configured (`MOYASAR_WEBHOOK_SECRET` /
+  `STRIPE_WEBHOOK_SECRET`) they return 401 outside the test suite, and a bad
+  signature returns 400. Deploying without them means webhooks are rejected —
+  subscriptions will not activate — which is the intended failure mode: these
+  endpoints are public, and `checkout.session.completed` activates whatever
+  company its metadata names.
 
 The `public` disk isn't used in production — `FILESYSTEM_DISK=s3` sends all
 uploads to R2. Public URLs come from `AWS_URL` (set an R2 public bucket domain).

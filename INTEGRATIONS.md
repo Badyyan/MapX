@@ -164,7 +164,8 @@ and cancellations.
    ```
    Events to send: `checkout.session.completed`, `invoice.paid`,
    `invoice.payment_failed`, `customer.subscription.deleted`.
-   Copy the signing secret.
+   Copy the signing secret — `STRIPE_WEBHOOK_SECRET` is required, not
+   optional: without it the endpoint rejects every delivery with a 401.
 
 ```dotenv
 STRIPE_KEY=pk_test_xxx        # pk_live_xxx in production

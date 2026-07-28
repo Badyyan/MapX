@@ -132,7 +132,7 @@ edits via API).
 php artisan test
 ```
 
-54 feature tests cover registration/provisioning, branch CRUD + trial limits +
+57 feature tests cover registration/provisioning, branch CRUD + trial limits +
 tenant isolation, RBAC enforcement, the QR threshold flow, the auto-reply
 engine, billing math/locking, gateway driver resolution, and both payment
 gateways end to end (Stripe webhooks; Moyasar checkout, amount verification,

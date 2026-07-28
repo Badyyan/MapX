@@ -60,12 +60,22 @@ class MoyasarWebhookController extends Controller
         if (! $secret) {
             // No secret configured: only the test suite may pass unverified.
             // Production without a secret is a misconfiguration, not a mode.
-            return app()->runningUnitTests();
+            return $this->allowsUnverified();
         }
 
         $token = $request->json('secret_token')
             ?? $request->header('X-Moyasar-Secret-Token', '');
 
         return is_string($token) && hash_equals($secret, $token);
+    }
+
+    /**
+     * Whether an unsigned payload may be processed. Defaults to "only under
+     * PHPUnit", and is a config value rather than a bare runningUnitTests()
+     * check so a test can switch it off and prove the production path.
+     */
+    private function allowsUnverified(): bool
+    {
+        return (bool) config('services.moyasar.allow_unverified_webhooks', app()->runningUnitTests());
     }
 }
