@@ -119,7 +119,10 @@
                     <span class="grid place-items-center size-7 rounded-lg bg-brand-600 text-white"><x-icon name="map-pin" class="size-4" /></span>
                     <span class="font-bold text-slate-900">Map<span class="text-brand-600">X</span></span>
                 </a>
-                <h1 class="hidden lg:block page-title truncate">@yield('title', __('Dashboard'))</h1>
+                {{-- `hidden` removed the only h1 from the accessibility tree
+                     below lg, leaving every page heading-less on mobile.
+                     max-lg:sr-only keeps it announced while staying invisible. --}}
+                <h1 class="max-lg:sr-only lg:block page-title truncate">@yield('title', __('Dashboard'))</h1>
             </div>
             <div class="flex items-center gap-2.5">
                 @php($sub = auth()->user()->company?->subscription)

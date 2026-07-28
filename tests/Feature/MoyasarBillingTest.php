@@ -86,6 +86,24 @@ class MoyasarBillingTest extends TestCase
         $response->assertSee('moyasar.css', false);
     }
 
+    public function test_checkout_degrades_gracefully_when_the_payment_sdk_fails(): void
+    {
+        // The card fields come from a third-party script that ad blockers,
+        // corporate proxies and CDN outages all break. Without this
+        // scaffolding the customer gets an empty box on a payment page.
+        $response = $this->actingAs($this->admin)
+            ->get(route('billing.checkout', ['plan' => 'monthly']))
+            ->assertOk();
+
+        $response->assertSee('id="mysr-loading"', false);          // busy state
+        $response->assertSee('id="mysr-fallback" hidden', false);  // error state, hidden until needed
+        $response->assertSee('role="alert"', false);               // announced to screen readers
+        $response->assertSee('<noscript>', false);                 // JS disabled entirely
+        $response->assertSee('onerror="mapxPaymentFormFailed()"', false);
+        $response->assertSee("typeof Moyasar === 'undefined'", false); // no uncaught ReferenceError
+        $response->assertSee('aria-busy="true"', false);
+    }
+
     public function test_checkout_stays_reachable_while_the_subscription_is_locked(): void
     {
         // FR-31: a locked account must still be able to pay its way out.

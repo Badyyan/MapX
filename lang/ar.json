@@ -455,5 +455,10 @@
     "Total due today": "الإجمالي المستحق اليوم",
     "Payment details": "تفاصيل الدفع",
     "Payments are processed by Moyasar. Card details are entered directly into Moyasar's secure form and never reach MapX servers.": "تتم معالجة المدفوعات عبر ميسر. تُدخل بيانات البطاقة مباشرة في نموذج ميسر الآمن ولا تصل إلى خوادم MapX إطلاقاً.",
-    "Refunded": "مُسترجعة"
+    "Refunded": "مُسترجعة",
+    "Loading secure payment form…": "جارٍ تحميل نموذج الدفع الآمن…",
+    "The secure payment form could not be loaded. This is usually an ad blocker or a network restriction.": "تعذر تحميل نموذج الدفع الآمن. غالباً بسبب مانع إعلانات أو قيود في الشبكة.",
+    "Try again": "حاول مرة أخرى",
+    "or contact support — you have not been charged.": "أو تواصل مع الدعم — لم يتم خصم أي مبلغ.",
+    "JavaScript is required to enter card details securely. Please enable it and reload this page.": "يجب تفعيل JavaScript لإدخال بيانات البطاقة بأمان. فعّله ثم أعد تحميل الصفحة."
 }
